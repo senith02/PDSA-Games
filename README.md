@@ -1,8 +1,21 @@
 # PDSA-Games
 Games with different algorithms
 
+## Features
+
+- 🧠 Play and visualize classic algorithmic problems:
+  - Tic-Tac-Toe (Minimax, Random)
+  - Traveling Salesman Problem (Greedy, Dynamic Programming, Genetic Algorithm)
+  - Tower of Hanoi (Recursive, Iterative, 4-peg)
+  - Eight Queens (Backtracking, Parallel Solutions)
+  - Knight's Tour (Warnsdorff’s Rule, Backtracking)
+- 📊 Compare performance and visualize time complexity
+- 📝 Store game results and algorithm run-times in a database
+- 🖥️ Responsive UI built with React
+
 ## Project Structure
 
+```
 PDSA CW/
 ├── frontend/PDSA-Games                # React frontend
 │   ├── public/             # Static assets (e.g., index.html, favicon)
@@ -59,3 +72,4 @@ PDSA CW/
 │   └── screenshots/        # UI and code screenshots
 ├── .gitignore              # Ignore node_modules, .env, etc.
 └── README.md               # Project overview and setup instructions
+```
