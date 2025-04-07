@@ -3,7 +3,7 @@ Games with different algorithms
 
 ## Project Structure
 
-PDSA CW/
+```PDSA CW/
 ├── frontend/PDSA-Games                # React frontend
 │   ├── public/             # Static assets (e.g., index.html, favicon)
 │   ├── src/                # Source code
@@ -59,3 +59,4 @@ PDSA CW/
 │   └── screenshots/        # UI and code screenshots
 ├── .gitignore              # Ignore node_modules, .env, etc.
 └── README.md               # Project overview and setup instructions
+```
