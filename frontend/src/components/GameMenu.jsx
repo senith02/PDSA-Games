@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 /**
  * GameMenu component serves as the landing page for AlgoGameHub
@@ -32,7 +33,7 @@ function GameMenu() {
       icon: '🏔️' 
     },
     { 
-      id: 'queens', 
+      id: 'eightqueens', 
       name: "Eight Queens",
       description: 'Place 8 queens without threats',
       icon: '♛' 
@@ -51,6 +52,8 @@ function GameMenu() {
     console.log(`Selected game: ${gameId}`);
   };
   
+  const navigate = useNavigate(); // Initialize useNavigate hook
+
   // Handler for play button
   const handlePlay = () => {
     if (!selectedGame) return;
@@ -61,7 +64,7 @@ function GameMenu() {
     // Simulate game loading with a timeout
     setTimeout(() => {
       setIsPlaying(false);
-      // Navigation logic would go here in a full implementation
+      navigate(`/${selectedGame}`); // Redirect to the selected game's page
     }, 1500);
   };
 
