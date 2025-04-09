@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import Chessboard from '../components/chessboard/chessboard';
 import GameBackground from '../components/chessboard/GameBackground';
 
@@ -25,6 +26,113 @@ function KnightsTour() {
     [1, -2], [1, 2], [2, -1], [2, 1]
   ];
   
+  const [algorithmType, setAlgorithmType] = useState('player'); // 'player', 'backtracking', or 'warnsdorff'
+  const [solutionPath, setSolutionPath] = useState(null);
+  const [showingSolution, setShowingSolution] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
+  
+  // Algorithm 1: Backtracking solution for Knight's Tour
+  const solveKnightsTourBacktracking = (startRow, startCol) => {
+    // Create solution board (all -1 initially)
+    const solution = Array(8).fill().map(() => Array(8).fill(-1));
+    solution[startRow][startCol] = 0;  // Mark starting position
+    
+    const solveUtil = (row, col, moveCount) => {
+      // Base case: If all squares are visited, we found a solution
+      if (moveCount === 64) {
+        return true;
+      }
+      
+      // Try all 8 possible moves from current position
+      for (const [dx, dy] of knightMoves) {
+        const newRow = row + dx;
+        const newCol = col + dy;
+        
+        // Check if the move is valid (on board and not visited)
+        if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8 && solution[newRow][newCol] === -1) {
+          // Make the move
+          solution[newRow][newCol] = moveCount;
+          
+          // Recursively try to solve from this new position
+          if (solveUtil(newRow, newCol, moveCount + 1)) {
+            return true;
+          }
+          
+          // If this move doesn't lead to a solution, backtrack
+          solution[newRow][newCol] = -1;
+        }
+      }
+      
+      // If no move leads to a solution
+      return false;
+    };
+    
+    // Start the recursive solving process
+    solveUtil(startRow, startCol, 1);
+    return solution;
+  };
+  
+  // Algorithm 2: Warnsdorff's heuristic solution for Knight's Tour
+  const solveKnightsTourWarnsdorff = (startRow, startCol) => {
+    // Create solution board
+    const solution = Array(8).fill().map(() => Array(8).fill(-1));
+    solution[startRow][startCol] = 0;  // Mark starting position
+    
+    let curRow = startRow;
+    let curCol = startCol;
+    
+    // Helper to count available moves from a position
+    const countAvailableMoves = (row, col, visited) => {
+      let count = 0;
+      for (const [dx, dy] of knightMoves) {
+        const newRow = row + dx;
+        const newCol = col + dy;
+        if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8 && visited[newRow][newCol] === -1) {
+          count++;
+        }
+      }
+      return count;
+    };
+    
+    // Fill the board using Warnsdorff's rule
+    for (let moveCount = 1; moveCount < 64; moveCount++) {
+      let nextRow = -1;
+      let nextCol = -1;
+      let minDegree = 9; // More than maximum possible degree (8)
+      
+      // Try all 8 possible moves
+      for (const [dx, dy] of knightMoves) {
+        const newRow = curRow + dx;
+        const newCol = curCol + dy;
+        
+        // Check if move is valid and not visited
+        if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8 && solution[newRow][newCol] === -1) {
+          // Count degree (number of available next moves)
+          const degree = countAvailableMoves(newRow, newCol, solution);
+          
+          // Update if this move has fewer next moves (Warnsdorff's rule)
+          if (degree < minDegree) {
+            minDegree = degree;
+            nextRow = newRow;
+            nextCol = newCol;
+          }
+        }
+      }
+      
+      // If we can't move further
+      if (nextRow === -1) {
+        return solution; // Return partial solution (it might not be complete)
+      }
+      
+      // Make the move with minimum degree
+      solution[nextRow][nextCol] = moveCount;
+      curRow = nextRow;
+      curCol = nextCol;
+    }
+    
+    return solution;
+  };
+  
   // Generate random starting position on game start
   useEffect(() => {
     if (gameStatus === 'setup') {
@@ -48,6 +156,10 @@ function KnightsTour() {
     setCurrentPosition([startRow, startCol]);
     setMoveNumber(1);
     setGameStatus('playing');
+    setAlgorithmType('player');
+    setShowingSolution(false);
+    setSolutionPath(null);
+    setIsVerified(false);
   };
   
   // Check if a move is valid
@@ -70,31 +182,49 @@ function KnightsTour() {
   
   // Handle cell click
   const handleCellClick = (row, col) => {
-    if (gameStatus !== 'playing') return;
+    if (gameStatus !== 'playing' || algorithmType !== 'player') return;
     
     if (isValidMove(row, col)) {
       // Make the move
-      const newBoard = [...board.map(row => [...row])];
+      const newBoard = [...board.map(boardRow => [...boardRow])];
       newBoard[row][col] = moveNumber;
       
-      setBoard(newBoard);
-      setCurrentPosition([row, col]);
-      setMoveNumber(moveNumber + 1);
+      // Update the board and position
+      const newPosition = [row, col];
+      const newMoveNumber = moveNumber + 1;
       
       // Check if the game is won (all cells visited)
-      if (moveNumber === 64) {
+      if (newMoveNumber === 64) {
+        setBoard(newBoard);
+        setCurrentPosition(newPosition);
+        setMoveNumber(newMoveNumber);
         setGameStatus('won');
-      } else {
-        // Check if there are any valid moves left
-        const hasValidMovesLeft = knightMoves.some(([dr, dc]) => {
-          const newRow = row + dr;
-          const newCol = col + dc;
-          return isValidMove(newRow, newCol);
-        });
         
-        if (!hasValidMovesLeft && moveNumber < 64) {
-          setGameStatus('lost');
-        }
+        // Save the solution to the database
+        savePlayerSolution();
+        return;
+      }
+      
+      // Check if there are any valid moves left from the new position
+      const hasValidMovesLeft = knightMoves.some(([dr, dc]) => {
+        const nextRow = row + dr;
+        const nextCol = col + dc;
+        
+        // Check if position is on the board
+        if (nextRow < 0 || nextRow >= 8 || nextCol < 0 || nextCol >= 8) return false;
+        
+        // Check if the cell is empty (not visited) in the new board
+        return newBoard[nextRow][nextCol] === -1;
+      });
+      
+      // Update the state
+      setBoard(newBoard);
+      setCurrentPosition(newPosition);
+      setMoveNumber(newMoveNumber);
+      
+      // Update game status if no valid moves remain
+      if (!hasValidMovesLeft) {
+        setGameStatus('lost');
       }
     }
   };
@@ -144,6 +274,53 @@ function KnightsTour() {
     }
   };
   
+  // Add a function to show algorithmic solutions
+  const showAlgorithmicSolution = (type) => {
+    if (!currentPosition) return;
+    
+    // Get starting position
+    const [startRow, startCol] = currentPosition;
+    
+    // Generate solution based on algorithm type
+    const solution = type === 'backtracking' 
+      ? solveKnightsTourBacktracking(startRow, startCol)
+      : solveKnightsTourWarnsdorff(startRow, startCol);
+    
+    setSolutionPath(solution);
+    setAlgorithmType(type);
+    setShowingSolution(true);
+  };
+  
+  // Add a function to hide the solution
+  const hideSolution = () => {
+    setShowingSolution(false);
+    setSolutionPath(null);
+  };
+  
+  // Add this function to save player solutions
+  const savePlayerSolution = async () => {
+    if (gameStatus === 'won' && !isVerified) {
+      try {
+        // Convert board to a more compact representation for storage
+        // Each number represents the move number at that position
+        const boardRepresentation = board.flat().join(',');
+        
+        await axios.post('/api/knights-tour/solutions', {
+          playerName,
+          startPosition: board.findIndex(row => row.includes(0)).toString() + 
+                        ',' + board[board.findIndex(row => row.includes(0))].indexOf(0),
+          solution: boardRepresentation,
+          algorithm: algorithmType,
+          moveCount: moveNumber - 1
+        });
+        
+        setIsVerified(true);
+      } catch (error) {
+        console.error('Error saving solution:', error);
+      }
+    }
+  };
+  
   return (
     <div className="h-screen bg-gradient-to-b from-gray-900 to-gray-800 flex flex-col justify-between overflow-auto">
       <GameBackground />
@@ -174,10 +351,12 @@ function KnightsTour() {
               hasKnight={hasKnight}
               isValidNextMove={isValidNextMove}
               getMoveNumber={getMoveNumber}
+              solutionPath={solutionPath}
+              showingSolution={showingSolution}
             />
             
             {/* Controls */}
-            <div className="mt-3 flex gap-3 justify-center">
+            <div className="mt-3 flex gap-3 justify-center flex-wrap">
               <button 
                 onClick={resetBoard}
                 className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-sm text-white rounded-md 
@@ -185,6 +364,36 @@ function KnightsTour() {
               >
                 New Game
               </button>
+              
+              {gameStatus === 'playing' && (
+                <>
+                  <button 
+                    onClick={() => showAlgorithmicSolution('backtracking')}
+                    className="px-3 py-1.5 bg-blue-700 hover:bg-blue-600 text-sm text-white rounded-md 
+                            transition-colors duration-200 shadow"
+                  >
+                    Backtracking Solution
+                  </button>
+                  <button 
+                    onClick={() => showAlgorithmicSolution('warnsdorff')}
+                    className="px-3 py-1.5 bg-purple-700 hover:bg-purple-600 text-sm text-white rounded-md 
+                            transition-colors duration-200 shadow"
+                  >
+                    Warnsdorff Solution
+                  </button>
+                </>
+              )}
+              
+              {showingSolution && (
+                <button 
+                  onClick={hideSolution}
+                  className="px-3 py-1.5 bg-red-700 hover:bg-red-600 text-sm text-white rounded-md 
+                          transition-colors duration-200 shadow"
+                >
+                  Hide Solution
+                </button>
+              )}
+              
               <button 
                 onClick={() => navigate('/')}
                 className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-sm text-white rounded-md 
@@ -193,6 +402,15 @@ function KnightsTour() {
                 Back to Menu
               </button>
             </div>
+
+            {/* Add this below the controls section */}
+            {showingSolution && (
+              <div className="mt-3 p-2 bg-gray-800/80 rounded-md">
+                <p className="text-center text-white text-sm">
+                  {algorithmType === 'backtracking' ? 'Backtracking' : 'Warnsdorff\'s'} Solution
+                </p>
+              </div>
+            )}
           </div>
           
           {/* Side panel */}
@@ -265,7 +483,15 @@ function KnightsTour() {
 }
 
 // Custom chessboard component for Knight's Tour
-function KnightTourBoard({ board, handleCellClick, hasKnight, isValidNextMove, getMoveNumber }) {
+function KnightTourBoard({ 
+  board, 
+  handleCellClick, 
+  hasKnight, 
+  isValidNextMove, 
+  getMoveNumber, 
+  solutionPath, // Add this prop
+  showingSolution // Add this prop
+}) {
   const colLabels = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
   
   return (
@@ -287,18 +513,26 @@ function KnightTourBoard({ board, handleCellClick, hasKnight, isValidNextMove, g
                   const isKnight = hasKnight(dataRow, col);
                   const isValidMove = isValidNextMove(dataRow, col);
                   
+                  // Get solution move number if showing solution
+                  const solutionMoveNum = showingSolution && solutionPath ? 
+                    solutionPath[dataRow][col] : -2;
+                  
                   // Cell color classes
                   const isDarkSquare = (dataRow + col) % 2 === 0;
                   let cellClasses = isDarkSquare 
                     ? "bg-gray-800 hover:bg-gray-700" 
                     : "bg-gray-600 hover:bg-gray-500";
                   
-                  // Knight or visited cell highlighting
-                  if (isKnight) {
+                  // Cell highlighting based on state
+                  if (showingSolution && solutionMoveNum >= 0) {
+                    // Colors for solution path steps
+                    const stepPercent = solutionMoveNum / 63; // 0 to 1 based on move number
+                    cellClasses = `bg-gradient-to-br from-green-700 to-blue-700 hover:from-green-600 hover:to-blue-600`;
+                  } else if (isKnight) {
                     cellClasses = "bg-blue-700 hover:bg-blue-600";
                   } else if (moveNum >= 0) {
                     cellClasses = "bg-purple-700/80 hover:bg-purple-600";
-                  } else if (isValidMove) {
+                  } else if (isValidMove && !showingSolution) {
                     cellClasses = isDarkSquare 
                       ? "bg-green-800/60 hover:bg-green-700" 
                       : "bg-green-700/40 hover:bg-green-600";
@@ -310,8 +544,13 @@ function KnightTourBoard({ board, handleCellClick, hasKnight, isValidNextMove, g
                       className={`aspect-square flex-1 ${cellClasses} flex items-center justify-center transition-all duration-200`}
                       onClick={() => handleCellClick(dataRow, col)}
                       aria-label={`Cell ${colLabels[col]}${rowNumber}`}
+                      disabled={showingSolution}
                     >
-                      {isKnight ? (
+                      {showingSolution && solutionMoveNum >= 0 ? (
+                        <span className="text-white text-xs md:text-sm font-medium">
+                          {solutionMoveNum === 0 ? 'S' : solutionMoveNum}
+                        </span>
+                      ) : isKnight ? (
                         <span className="text-white text-2xl md:text-3xl">♞</span>
                       ) : moveNum >= 0 ? (
                         <span className="text-white text-xs md:text-sm font-medium">
