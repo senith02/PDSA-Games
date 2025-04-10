@@ -31,106 +31,44 @@ function KnightsTour() {
   const [showingSolution, setShowingSolution] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   
-  // Algorithm 1: Backtracking solution for Knight's Tour
-  const solveKnightsTourBacktracking = (startRow, startCol) => {
-    // Create solution board (all -1 initially)
-    const solution = Array(8).fill().map(() => Array(8).fill(-1));
-    solution[startRow][startCol] = 0;  // Mark starting position
+  // Add a function to call the backend API for solutions
+  const fetchAlgorithmSolution = async (algorithm) => {
+    if (!currentPosition) return;
     
-    const solveUtil = (row, col, moveCount) => {
-      // Base case: If all squares are visited, we found a solution
-      if (moveCount === 64) {
-        return true;
-      }
+    try {
+      // Show loading state (optional)
+      setShowingSolution(true);
+      setAlgorithmType(algorithm);
+      setSolutionPath(null); // Clear previous solution
       
-      // Try all 8 possible moves from current position
-      for (const [dx, dy] of knightMoves) {
-        const newRow = row + dx;
-        const newCol = col + dy;
-        
-        // Check if the move is valid (on board and not visited)
-        if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8 && solution[newRow][newCol] === -1) {
-          // Make the move
-          solution[newRow][newCol] = moveCount;
-          
-          // Recursively try to solve from this new position
-          if (solveUtil(newRow, newCol, moveCount + 1)) {
-            return true;
-          }
-          
-          // If this move doesn't lead to a solution, backtrack
-          solution[newRow][newCol] = -1;
+      // Get starting position
+      const [startRow, startCol] = currentPosition;
+      
+      // Call the API
+      const response = await axios.get('http://localhost:5000/api/knights-tour/solution', {
+        params: {
+          algorithm,
+          startRow,
+          startCol
         }
-      }
+      });
       
-      // If no move leads to a solution
-      return false;
-    };
-    
-    // Start the recursive solving process
-    solveUtil(startRow, startCol, 1);
-    return solution;
+      // Update the state with the solution
+      setSolutionPath(response.data.solution);
+      
+      // Optionally display the execution time
+      console.log(`${algorithm} solution found in ${response.data.executionTime.toFixed(2)} ms`);
+      
+    } catch (error) {
+      console.error('Error fetching solution:', error);
+      // Reset state or show error message
+      setShowingSolution(false);
+    }
   };
   
-  // Algorithm 2: Warnsdorff's heuristic solution for Knight's Tour
-  const solveKnightsTourWarnsdorff = (startRow, startCol) => {
-    // Create solution board
-    const solution = Array(8).fill().map(() => Array(8).fill(-1));
-    solution[startRow][startCol] = 0;  // Mark starting position
-    
-    let curRow = startRow;
-    let curCol = startCol;
-    
-    // Helper to count available moves from a position
-    const countAvailableMoves = (row, col, visited) => {
-      let count = 0;
-      for (const [dx, dy] of knightMoves) {
-        const newRow = row + dx;
-        const newCol = col + dy;
-        if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8 && visited[newRow][newCol] === -1) {
-          count++;
-        }
-      }
-      return count;
-    };
-    
-    // Fill the board using Warnsdorff's rule
-    for (let moveCount = 1; moveCount < 64; moveCount++) {
-      let nextRow = -1;
-      let nextCol = -1;
-      let minDegree = 9; // More than maximum possible degree (8)
-      
-      // Try all 8 possible moves
-      for (const [dx, dy] of knightMoves) {
-        const newRow = curRow + dx;
-        const newCol = curCol + dy;
-        
-        // Check if move is valid and not visited
-        if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8 && solution[newRow][newCol] === -1) {
-          // Count degree (number of available next moves)
-          const degree = countAvailableMoves(newRow, newCol, solution);
-          
-          // Update if this move has fewer next moves (Warnsdorff's rule)
-          if (degree < minDegree) {
-            minDegree = degree;
-            nextRow = newRow;
-            nextCol = newCol;
-          }
-        }
-      }
-      
-      // If we can't move further
-      if (nextRow === -1) {
-        return solution; // Return partial solution (it might not be complete)
-      }
-      
-      // Make the move with minimum degree
-      solution[nextRow][nextCol] = moveCount;
-      curRow = nextRow;
-      curCol = nextCol;
-    }
-    
-    return solution;
+  // Update the showAlgorithmicSolution function to use the API
+  const showAlgorithmicSolution = (type) => {
+    fetchAlgorithmSolution(type);
   };
   
   // Generate random starting position on game start
@@ -274,35 +212,17 @@ function KnightsTour() {
     }
   };
   
-  // Add a function to show algorithmic solutions
-  const showAlgorithmicSolution = (type) => {
-    if (!currentPosition) return;
-    
-    // Get starting position
-    const [startRow, startCol] = currentPosition;
-    
-    // Generate solution based on algorithm type
-    const solution = type === 'backtracking' 
-      ? solveKnightsTourBacktracking(startRow, startCol)
-      : solveKnightsTourWarnsdorff(startRow, startCol);
-    
-    setSolutionPath(solution);
-    setAlgorithmType(type);
-    setShowingSolution(true);
-  };
-  
   // Add a function to hide the solution
   const hideSolution = () => {
     setShowingSolution(false);
     setSolutionPath(null);
   };
   
-  // Add this function to save player solutions
+  // Update the savePlayerSolution function to use the API endpoint
   const savePlayerSolution = async () => {
     if (gameStatus === 'won' && !isVerified) {
       try {
         // Convert board to a more compact representation for storage
-        // Each number represents the move number at that position
         const boardRepresentation = board.flat().join(',');
         
         await axios.post('/api/knights-tour/solutions', {
