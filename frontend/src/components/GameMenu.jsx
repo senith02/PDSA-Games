@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import PlayerModal from './PlayerModal';
 
 /**
  * GameMenu component serves as the landing page for AlgoGameHub
@@ -10,6 +11,8 @@ function GameMenu() {
   const [selectedGame, setSelectedGame] = useState(null);
   // State to handle animation effects
   const [isPlaying, setIsPlaying] = useState(false);
+  // State to control the player modal
+  const [showPlayerModal, setShowPlayerModal] = useState(false);
   
   // Array of available games with descriptions and icons
   const games = [
@@ -54,12 +57,21 @@ function GameMenu() {
   
   const navigate = useNavigate(); // Initialize useNavigate hook
 
-  // Handler for play button
+  // Handler for play button - show modal instead of immediately playing
   const handlePlay = () => {
     if (!selectedGame) return;
-    
+    setShowPlayerModal(true);
+  };
+  
+  // Handler for when user confirms name and wants to play
+  const handleStartGame = (playerName) => {
+    setShowPlayerModal(false);
     setIsPlaying(true);
-    console.log(`Starting game: ${selectedGame}`);
+    
+    // Store player name in localStorage
+    localStorage.setItem('playerName', playerName);
+    
+    console.log(`Starting game: ${selectedGame} with player: ${playerName}`);
     
     // Simulate game loading with a timeout
     setTimeout(() => {
@@ -67,6 +79,9 @@ function GameMenu() {
       navigate(`/${selectedGame}`); // Redirect to the selected game's page
     }, 1500);
   };
+  
+  // Find the currently selected game object
+  const selectedGameObject = selectedGame ? games.find(game => game.id === selectedGame) : null;
 
   // Custom icon rendering for Tic-Tac-Toe to solve overflow
   const renderIcon = (game) => {
@@ -187,6 +202,14 @@ function GameMenu() {
           </p>
         )}
       </div>
+      
+      {/* Player Name Modal */}
+      <PlayerModal 
+        isOpen={showPlayerModal}
+        onClose={() => setShowPlayerModal(false)}
+        onConfirm={handleStartGame}
+        selectedGame={selectedGameObject}
+      />
     </div>
   );
 }

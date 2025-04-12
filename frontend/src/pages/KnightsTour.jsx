@@ -20,6 +20,14 @@ function KnightsTour() {
   // Game status: 'setup', 'playing', 'won', 'lost'
   const [gameStatus, setGameStatus] = useState('setup');
   
+  // Get player name from localStorage on component mount
+  useEffect(() => {
+    const savedName = localStorage.getItem('playerName');
+    if (savedName) {
+      setPlayerName(savedName);
+    }
+  }, []);
+  
   // Possible knight moves (8 possible L-shaped moves)
   const knightMoves = [
     [-2, -1], [-2, 1], [-1, -2], [-1, 2],
@@ -241,6 +249,13 @@ function KnightsTour() {
     }
   };
   
+  // Update the player name and save it to localStorage
+  const handlePlayerNameChange = (e) => {
+    const newName = e.target.value;
+    setPlayerName(newName);
+    localStorage.setItem('playerName', newName);
+  };
+  
   return (
     <div className="h-screen bg-gradient-to-b from-gray-900 to-gray-800 flex flex-col justify-between overflow-auto">
       <GameBackground />
@@ -344,7 +359,7 @@ function KnightsTour() {
                   type="text" 
                   id="playerName" 
                   value={playerName} 
-                  onChange={(e) => setPlayerName(e.target.value)} 
+                  onChange={handlePlayerNameChange} 
                   className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500 w-full"
                   placeholder="Enter your name"
                 />
