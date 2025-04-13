@@ -17,7 +17,10 @@ app.get('/', (req, res) => {
   res.json({ message: 'Algorithm Games API' });
 });
 
-// Start server
+// Start server - ensure this is the last action in the file
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+// Remove or comment out any testing code that might be interfering with server start
+// The Knight's Tour algorithm tests will now only run when endpoints are called

@@ -20,30 +20,52 @@ function solveUsingBacktracking(startRow, startCol) {
   const solution = Array(8).fill().map(() => Array(8).fill(-1));
   solution[startRow][startCol] = 0;  // Mark starting position
   
+  // Helper to count available moves from a position
+  const countAvailableMoves = (row, col) => {
+    let count = 0;
+    for (const [dx, dy] of knightMoves) {
+      const newRow = row + dx;
+      const newCol = col + dy;
+      if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8 && solution[newRow][newCol] === -1) {
+        count++;
+      }
+    }
+    return count;
+  };
+
   const solveUtil = (row, col, moveCount) => {
     // Base case: If all squares are visited, we found a solution
     if (moveCount === 64) {
       return true;
     }
     
-    // Try all 8 possible moves from current position
-    for (const [dx, dy] of knightMoves) {
-      const newRow = row + dx;
-      const newCol = col + dy;
-      
-      // Check if the move is valid (on board and not visited)
-      if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8 && solution[newRow][newCol] === -1) {
-        // Make the move
-        solution[newRow][newCol] = moveCount;
-        
-        // Recursively try to solve from this new position
-        if (solveUtil(newRow, newCol, moveCount + 1)) {
-          return true;
+    // Get all possible moves and sort them by number of onward moves (Warnsdorff's heuristic)
+    const possibleMoves = knightMoves
+      .map(([dx, dy]) => {
+        const newRow = row + dx;
+        const newCol = col + dy;
+        if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8 && solution[newRow][newCol] === -1) {
+          // Count available moves from this position
+          const moveCount = countAvailableMoves(newRow, newCol);
+          return { row: newRow, col: newCol, moveCount };
         }
-        
-        // If this move doesn't lead to a solution, backtrack
-        solution[newRow][newCol] = -1;
+        return null;
+      })
+      .filter(move => move !== null)
+      .sort((a, b) => a.moveCount - b.moveCount); // Sort by least number of onward moves first
+    
+    // Try moves in order of fewest onward moves
+    for (const move of possibleMoves) {
+      // Make the move
+      solution[move.row][move.col] = moveCount;
+      
+      // Recursively try to solve from this new position
+      if (solveUtil(move.row, move.col, moveCount + 1)) {
+        return true;
       }
+      
+      // If this move doesn't lead to a solution, backtrack
+      solution[move.row][move.col] = -1;
     }
     
     // If no move leads to a solution
@@ -52,11 +74,11 @@ function solveUsingBacktracking(startRow, startCol) {
   
   // Start the recursive solving process
   const startTime = performance.now();
-  solveUtil(startRow, startCol, 1);
+  const found = solveUtil(startRow, startCol, 1);
   const endTime = performance.now();
   
   return {
-    solution,
+    solution: found ? solution : null,
     executionTime: endTime - startTime
   };
 }
@@ -134,7 +156,9 @@ function solveUsingWarnsdorff(startRow, startCol) {
   };
 }
 
-// Test the algorithms
+// Comment out the automatic testing to prevent it from running on server start
+// This will help the server initialize properly
+/*
 console.log("Testing Knight's Tour algorithms...");
 
 // Random starting position for testing
@@ -154,6 +178,7 @@ const warnsdorffStart = performance.now();
 const warnsdorffResult = solveUsingWarnsdorff(testRow, testCol);
 const warnsdorffEnd = performance.now();
 console.log(`Warnsdorff's solution found in ${warnsdorffResult.executionTime.toFixed(2)} ms`);
+*/
 
 // Export the functions
 module.exports = {
