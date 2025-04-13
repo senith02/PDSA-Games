@@ -35,42 +35,68 @@ function KnightsTour() {
   ];
   
   const [algorithmType, setAlgorithmType] = useState('player'); // 'player', 'backtracking', or 'warnsdorff'
-  const [solutionPath, setSolutionPath] = useState(null);
-  const [showingSolution, setShowingSolution] = useState(false);
+  const [backtrackingSolution, setBacktrackingSolution] = useState(null);
+  const [warnsdorffSolution, setWarnsdorffSolution] = useState(null);
+  const [showingBacktracking, setShowingBacktracking] = useState(false);
+  const [showingWarnsdorff, setShowingWarnsdorff] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // Add loading state
+  const [errorMessage, setErrorMessage] = useState(''); // Add error state
   
   // Add a function to call the backend API for solutions
   const fetchAlgorithmSolution = async (algorithm) => {
     if (!currentPosition) return;
     
     try {
-      // Show loading state (optional)
-      setShowingSolution(true);
+      setIsLoading(true);
+      setErrorMessage('');
       setAlgorithmType(algorithm);
-      setSolutionPath(null); // Clear previous solution
       
-      // Get starting position
       const [startRow, startCol] = currentPosition;
       
-      // Call the API
-      const response = await axios.get('http://localhost:5000/api/knights-tour/solution', {
+      const response = await axios.get('/api/knights-tour/solution', {
         params: {
           algorithm,
           startRow,
           startCol
-        }
+        },
+        // Increase timeout for backtracking algorithm
+        timeout: algorithm === 'backtracking' ? 30000 : 10000 // 30 seconds for backtracking, 10 for others
       });
       
-      // Update the state with the solution
-      setSolutionPath(response.data.solution);
+      // Update the appropriate solution state based on algorithm
+      if (algorithm === 'backtracking') {
+        setBacktrackingSolution(response.data.solution);
+        setShowingBacktracking(true);
+      } else if (algorithm === 'warnsdorff') {
+        setWarnsdorffSolution(response.data.solution);
+        setShowingWarnsdorff(true);
+      }
       
-      // Optionally display the execution time
       console.log(`${algorithm} solution found in ${response.data.executionTime.toFixed(2)} ms`);
       
     } catch (error) {
       console.error('Error fetching solution:', error);
-      // Reset state or show error message
-      setShowingSolution(false);
+      if (error.code === 'ECONNABORTED') {
+        setErrorMessage(`The ${algorithm} algorithm is taking too long to compute. Try using Warnsdorff's algorithm instead, which is much faster.`);
+      } else if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error')) {
+        setErrorMessage('Cannot connect to server. Please make sure the server is running.');
+      } else if (error.response) {
+        setErrorMessage(`Server error: ${error.response.data.error || 'Unknown error'}`);
+      } else {
+        setErrorMessage('Failed to load solution. Please try again.');
+      }
+      
+      // Clear the corresponding solution state on error
+      if (algorithm === 'backtracking') {
+        setBacktrackingSolution(null);
+        setShowingBacktracking(false);
+      } else if (algorithm === 'warnsdorff') {
+        setWarnsdorffSolution(null);
+        setShowingWarnsdorff(false);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -103,8 +129,10 @@ function KnightsTour() {
     setMoveNumber(1);
     setGameStatus('playing');
     setAlgorithmType('player');
-    setShowingSolution(false);
-    setSolutionPath(null);
+    setShowingBacktracking(false);
+    setShowingWarnsdorff(false);
+    setBacktrackingSolution(null);
+    setWarnsdorffSolution(null);
     setIsVerified(false);
   };
   
@@ -221,9 +249,12 @@ function KnightsTour() {
   };
   
   // Add a function to hide the solution
-  const hideSolution = () => {
-    setShowingSolution(false);
-    setSolutionPath(null);
+  const hideSolution = (algorithm) => {
+    if (algorithm === 'backtracking') {
+      setShowingBacktracking(false);
+    } else if (algorithm === 'warnsdorff') {
+      setShowingWarnsdorff(false);
+    }
   };
   
   // Update the savePlayerSolution function to use the API endpoint
@@ -233,6 +264,7 @@ function KnightsTour() {
         // Convert board to a more compact representation for storage
         const boardRepresentation = board.flat().join(',');
         
+        // Use the proxy URL instead of the hardcoded URL
         await axios.post('/api/knights-tour/solutions', {
           playerName,
           startPosition: board.findIndex(row => row.includes(0)).toString() + 
@@ -286,8 +318,10 @@ function KnightsTour() {
               hasKnight={hasKnight}
               isValidNextMove={isValidNextMove}
               getMoveNumber={getMoveNumber}
-              solutionPath={solutionPath}
-              showingSolution={showingSolution}
+              backtrackingSolution={backtrackingSolution}
+              warnsdorffSolution={warnsdorffSolution}
+              showingBacktracking={showingBacktracking}
+              showingWarnsdorff={showingWarnsdorff}
             />
             
             {/* Controls */}
@@ -304,29 +338,44 @@ function KnightsTour() {
                 <>
                   <button 
                     onClick={() => showAlgorithmicSolution('backtracking')}
-                    className="px-3 py-1.5 bg-blue-700 hover:bg-blue-600 text-sm text-white rounded-md 
-                            transition-colors duration-200 shadow"
+                    className={`px-3 py-1.5 ${showingBacktracking ? 'bg-blue-900' : 'bg-blue-700 hover:bg-blue-600'} 
+                              text-sm text-white rounded-md transition-colors duration-200 shadow`}
+                    disabled={isLoading}
                   >
-                    Backtracking Solution
+                    {isLoading && algorithmType === 'backtracking' ? 'Loading...' : 'Backtracking Solution'}
                   </button>
                   <button 
                     onClick={() => showAlgorithmicSolution('warnsdorff')}
-                    className="px-3 py-1.5 bg-purple-700 hover:bg-purple-600 text-sm text-white rounded-md 
-                            transition-colors duration-200 shadow"
+                    className={`px-3 py-1.5 ${showingWarnsdorff ? 'bg-purple-900' : 'bg-purple-700 hover:bg-purple-600'} 
+                              text-sm text-white rounded-md transition-colors duration-200 shadow`}
+                    disabled={isLoading}
                   >
-                    Warnsdorff Solution
+                    {isLoading && algorithmType === 'warnsdorff' ? 'Loading...' : 'Warnsdorff Solution'}
                   </button>
                 </>
               )}
               
-              {showingSolution && (
-                <button 
-                  onClick={hideSolution}
-                  className="px-3 py-1.5 bg-red-700 hover:bg-red-600 text-sm text-white rounded-md 
-                          transition-colors duration-200 shadow"
-                >
-                  Hide Solution
-                </button>
+              {(showingBacktracking || showingWarnsdorff) && (
+                <div className="flex gap-2">
+                  {showingBacktracking && (
+                    <button 
+                      onClick={() => hideSolution('backtracking')}
+                      className="px-3 py-1.5 bg-red-700 hover:bg-red-600 text-sm text-white rounded-md 
+                                transition-colors duration-200 shadow"
+                    >
+                      Hide Backtracking
+                    </button>
+                  )}
+                  {showingWarnsdorff && (
+                    <button 
+                      onClick={() => hideSolution('warnsdorff')}
+                      className="px-3 py-1.5 bg-red-700 hover:bg-red-600 text-sm text-white rounded-md 
+                                transition-colors duration-200 shadow"
+                    >
+                      Hide Warnsdorff
+                    </button>
+                  )}
+                </div>
               )}
               
               <button 
@@ -338,11 +387,31 @@ function KnightsTour() {
               </button>
             </div>
 
-            {/* Add this below the controls section */}
-            {showingSolution && (
-              <div className="mt-3 p-2 bg-gray-800/80 rounded-md">
+            {/* Update the solution display section */}
+            {(showingBacktracking || showingWarnsdorff) && (
+              <div className="mt-3 space-y-2">
+                {showingBacktracking && (
+                  <div className="p-2 bg-blue-800/80 rounded-md">
+                    <p className="text-center text-white text-sm">
+                      Backtracking Solution Path
+                    </p>
+                  </div>
+                )}
+                {showingWarnsdorff && (
+                  <div className="p-2 bg-purple-800/80 rounded-md">
+                    <p className="text-center text-white text-sm">
+                      Warnsdorff's Solution Path
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Display error message */}
+            {errorMessage && (
+              <div className="mt-3 p-2 bg-red-800/80 rounded-md">
                 <p className="text-center text-white text-sm">
-                  {algorithmType === 'backtracking' ? 'Backtracking' : 'Warnsdorff\'s'} Solution
+                  {errorMessage}
                 </p>
               </div>
             )}
@@ -423,9 +492,11 @@ function KnightTourBoard({
   handleCellClick, 
   hasKnight, 
   isValidNextMove, 
-  getMoveNumber, 
-  solutionPath, // Add this prop
-  showingSolution // Add this prop
+  getMoveNumber,
+  backtrackingSolution,
+  warnsdorffSolution,
+  showingBacktracking,
+  showingWarnsdorff
 }) {
   const colLabels = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
   
@@ -448,9 +519,11 @@ function KnightTourBoard({
                   const isKnight = hasKnight(dataRow, col);
                   const isValidMove = isValidNextMove(dataRow, col);
                   
-                  // Get solution move number if showing solution
-                  const solutionMoveNum = showingSolution && solutionPath ? 
-                    solutionPath[dataRow][col] : -2;
+                  // Get solution move numbers if showing solutions
+                  const backtrackingMoveNum = showingBacktracking && backtrackingSolution ? 
+                    backtrackingSolution[dataRow][col] : -2;
+                  const warnsdorffMoveNum = showingWarnsdorff && warnsdorffSolution ? 
+                    warnsdorffSolution[dataRow][col] : -2;
                   
                   // Cell color classes
                   const isDarkSquare = (dataRow + col) % 2 === 0;
@@ -459,15 +532,13 @@ function KnightTourBoard({
                     : "bg-gray-600 hover:bg-gray-500";
                   
                   // Cell highlighting based on state
-                  if (showingSolution && solutionMoveNum >= 0) {
-                    // Colors for solution path steps
-                    const stepPercent = solutionMoveNum / 63; // 0 to 1 based on move number
-                    cellClasses = `bg-gradient-to-br from-green-700 to-blue-700 hover:from-green-600 hover:to-blue-600`;
+                  if (showingBacktracking && backtrackingMoveNum >= 0) {
+                    cellClasses = `bg-gradient-to-br from-blue-700 to-blue-500 hover:from-blue-600 hover:to-blue-400`;
+                  } else if (showingWarnsdorff && warnsdorffMoveNum >= 0) {
+                    cellClasses = `bg-gradient-to-br from-purple-700 to-purple-500 hover:from-purple-600 hover:to-purple-400`;
                   } else if (isKnight) {
-                    cellClasses = "bg-blue-700 hover:bg-blue-600";
-                  } else if (moveNum >= 0) {
                     cellClasses = "bg-purple-700/80 hover:bg-purple-600";
-                  } else if (isValidMove && !showingSolution) {
+                  } else if (isValidMove && !showingBacktracking && !showingWarnsdorff) {
                     cellClasses = isDarkSquare 
                       ? "bg-green-800/60 hover:bg-green-700" 
                       : "bg-green-700/40 hover:bg-green-600";
@@ -479,11 +550,15 @@ function KnightTourBoard({
                       className={`aspect-square flex-1 ${cellClasses} flex items-center justify-center transition-all duration-200`}
                       onClick={() => handleCellClick(dataRow, col)}
                       aria-label={`Cell ${colLabels[col]}${rowNumber}`}
-                      disabled={showingSolution}
+                      disabled={showingBacktracking || showingWarnsdorff}
                     >
-                      {showingSolution && solutionMoveNum >= 0 ? (
+                      {showingBacktracking && backtrackingMoveNum >= 0 ? (
                         <span className="text-white text-xs md:text-sm font-medium">
-                          {solutionMoveNum === 0 ? 'S' : solutionMoveNum}
+                          {backtrackingMoveNum === 0 ? 'S' : backtrackingMoveNum}
+                        </span>
+                      ) : showingWarnsdorff && warnsdorffMoveNum >= 0 ? (
+                        <span className="text-white text-xs md:text-sm font-medium">
+                          {warnsdorffMoveNum === 0 ? 'S' : warnsdorffMoveNum}
                         </span>
                       ) : isKnight ? (
                         <span className="text-white text-2xl md:text-3xl">♞</span>
