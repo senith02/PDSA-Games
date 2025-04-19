@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GameHeader from '../components/chessboard/GameHeader';
 import Chessboard from '../components/chessboard/chessboard';
@@ -13,6 +13,14 @@ function EightQueens() {
   const [board, setBoard] = useState(Array(8).fill(-1));
   // Player name state
   const [playerName, setPlayerName] = useState('Player');
+  
+  // Get player name from localStorage on component mount
+  useEffect(() => {
+    const savedName = localStorage.getItem('playerName');
+    if (savedName) {
+      setPlayerName(savedName);
+    }
+  }, []);
   
   // Handle cell click to place/remove queens
   const handleCellClick = (row, col) => {
@@ -101,7 +109,10 @@ function EightQueens() {
           type="text" 
           id="playerName" 
           value={playerName} 
-          onChange={(e) => setPlayerName(e.target.value)} 
+          onChange={(e) => {
+            setPlayerName(e.target.value);
+            localStorage.setItem('playerName', e.target.value); // Update localStorage when name changes
+          }}
           className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500 w-full"
           placeholder="Enter your name"
         />
