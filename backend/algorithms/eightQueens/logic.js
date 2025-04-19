@@ -1,11 +1,11 @@
-function eightQueens(board, col, n, solutions){
+export function eightQueens(board, col, n, solutions){
 
     if(col >= n){
         solutions.push(board.map(row => [...row]));
         return false;
     }
     
-    for(let row = 0; row<n; row++){
+    for(let row = 0; row < n; row++){
 
         //constraints
         if(isSafe(board, row, col, n)){
@@ -47,5 +47,3 @@ function isSafe(board, row, col, n){
     }
     return true;
 }
-
-module.exports = { isSafe, eightQueens };
