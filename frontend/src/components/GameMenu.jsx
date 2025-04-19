@@ -4,7 +4,7 @@ import { useState } from 'react';
  * GameMenu component serves as the landing page for AlgoGameHub
  * Displays a grid of game options for the user to select from
  */
-function GameMenu() {
+function GameMenu({ onGameSelect }) {
   // State to track which game is selected
   const [selectedGame, setSelectedGame] = useState(null);
   // State to handle animation effects
@@ -56,13 +56,12 @@ function GameMenu() {
     if (!selectedGame) return;
     
     setIsPlaying(true);
-    console.log(`Starting game: ${selectedGame}`);
     
-    // Simulate game loading with a timeout
+    // Short delay for animation before navigating to the selected game
     setTimeout(() => {
+      onGameSelect(selectedGame);
       setIsPlaying(false);
-      // Navigation logic would go here in a full implementation
-    }, 1500);
+    }, 800);
   };
 
   // Custom icon rendering for Tic-Tac-Toe to solve overflow
