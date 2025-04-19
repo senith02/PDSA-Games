@@ -49,14 +49,19 @@ function GameMenu() {
     }
   ];
   
+  const navigate = useNavigate(); // Initialize useNavigate hook
+
   // Handler for game selection
   const handleGameSelect = (gameId) => {
     setSelectedGame(gameId);
     console.log(`Selected game: ${gameId}`);
+    
+    // Navigate to the selected game's page
+    if (gameId === 'tictactoe') {
+      navigate('/tictactoe'); // Redirect to Tic-Tac-Toe page
+    }
   };
   
-  const navigate = useNavigate(); // Initialize useNavigate hook
-
   // Handler for play button - show modal instead of immediately playing
   const handlePlay = () => {
     if (!selectedGame) return;
