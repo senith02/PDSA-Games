@@ -36,6 +36,12 @@ const generateDistanceMatrix = () => {
       else matrix[i][j] = Math.floor(Math.random() * (100 - 50 + 1)) + 50;
     }
   }
+  // Ensure symmetry (optional, for realistic distances)
+  for (let i = 0; i < 10; i++) {
+    for (let j = i + 1; j < 10; j++) {
+      matrix[j][i] = matrix[i][j];
+    }
+  }
   return matrix;
 };
 
@@ -114,17 +120,14 @@ const nearestNeighborTSP = (matrix, start, cities) => {
 const dynamicProgrammingTSP = (matrix, start, cities) => {
   const startTime = performance.now();
   const n = cities.length;
-  console.log('dynamicProgrammingTSP called with:', { start, cities, n });
   if (n < 2) {
     throw new Error('At least 2 cities are required for TSP');
   }
 
   const dp = Array(1 << n).fill().map(() => Array(n).fill(Infinity));
   const parent = Array(1 << n).fill().map(() => Array(n).fill(-1));
-  console.log('parent length:', parent.length, 'expected:', 1 << n);
 
   const startIdx = cities.indexOf(start);
-  console.log('startIdx:', startIdx);
   if (startIdx === -1) {
     throw new Error(`Start city ${start} not found in cities array`);
   }
@@ -138,18 +141,12 @@ const dynamicProgrammingTSP = (matrix, start, cities) => {
         const newMask = mask | (1 << v);
         const uIdx = cityToIndex(cities[u]);
         const vIdx = cityToIndex(cities[v]);
-        console.log('mask:', mask, 'u:', u, 'v:', v, 'newMask:', newMask, 'uIdx:', uIdx, 'vIdx:', vIdx);
-        if (newMask >= parent.length) {
-          console.error('newMask out of bounds:', newMask, 'parent length:', parent.length);
-          throw new Error('newMask out of bounds');
-        }
         const matrixValue = matrix[uIdx][vIdx];
         if (typeof matrixValue !== 'number') {
           console.error('Invalid matrix value:', { uIdx, vIdx, matrixValue });
           throw new Error('Invalid matrix value');
         }
         const newDist = dp[mask][u] + matrixValue;
-        console.log('newDist:', newDist);
         if (isNaN(newDist)) {
           console.error('newDist is NaN:', { dp: dp[mask][u], matrixValue, uIdx, vIdx });
           throw new Error('newDist is NaN');
@@ -195,9 +192,14 @@ const dynamicProgrammingTSP = (matrix, start, cities) => {
 
 // API Routes
 app.post('/api/start-game', (req, res) => {
+  const { homeCity } = req.body;
+  const validCities = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+
+  if (!homeCity || !validCities.includes(homeCity)) {
+    return res.status(400).json({ error: 'Invalid or missing home city.' });
+  }
+
   const matrix = generateDistanceMatrix();
-  const cities = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
-  const homeCity = cities[Math.floor(Math.random() * cities.length)];
   res.json({ matrix, homeCity });
 });
 
@@ -227,7 +229,6 @@ app.post('/api/solve-tsp', (req, res) => {
 
   const cityIndices = selectedCities.map(city => 'ABCDEFGHIJ'.indexOf(city));
   const citiesWithHome = [homeCity, ...selectedCities.filter(city => city !== homeCity)];
-  console.log('citiesWithHome:', citiesWithHome);
 
   try {
     const results = {

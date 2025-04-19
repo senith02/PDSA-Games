@@ -1,5 +1,5 @@
 const request = require('supertest');
-const app = require('./server');
+const app = require('./tspserver');
 
 describe('Traveling Salesman Problem API', () => {
   test('POST /api/start-game should return a distance matrix and home city', async () => {
