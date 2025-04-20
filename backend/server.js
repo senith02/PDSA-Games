@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const knightsTourRoutes = require('./routes/knightsTourRoutes');
+const tspRoutes = require('./travelingSalesmenBE/tspRoutes');
+const eightQueensRoutes = require('./routes/eightQueensRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -11,6 +13,8 @@ app.use(express.json());
 
 // API routes
 app.use('/api/knights-tour', knightsTourRoutes);
+app.use('/api/tsp', tspRoutes);
+app.use('/api/eightqueens', eightQueensRoutes);
 
 // Default route
 app.get('/', (req, res) => {

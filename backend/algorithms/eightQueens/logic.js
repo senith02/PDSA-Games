@@ -1,4 +1,4 @@
-export function eightQueens(board, col, n, solutions){
+function eightQueens(board, col, n, solutions){
 
     if(col >= n){
         solutions.push(board.map(row => [...row]));
@@ -47,3 +47,5 @@ function isSafe(board, row, col, n){
     }
     return true;
 }
+
+module.exports = { eightQueens };

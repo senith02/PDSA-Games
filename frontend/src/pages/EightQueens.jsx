@@ -4,7 +4,6 @@ import Chessboard from '../components/chessboard/Chessboard';
 import PlayerInfo from '../components/chessboard/PlayerInfo';
 import GameInstructions from '../components/chessboard/GameInstructions';
 import GameBackground from '../components/chessboard/GameBackground';
-import {eightQueens} from '../../../backend/algorithms/eightQueens/logic';
 
 function EightQueens() {
   const navigate = useNavigate();
@@ -35,26 +34,13 @@ function EightQueens() {
     return true;
   };
 
-  // Find all solutions (run only once when needed)
-  const findAllSolutions = () => {
-    const n = 8;
-    const emptyBoard = Array(n).fill(0).map(() => Array(n).fill(0));
-    const sols = [];
-    eightQueens(emptyBoard, 0, n, sols);
-    console.log(sols);
-    // Convert 2D board solutions to 1D array for display
-    const converted = sols.map(sol => {
-      const arr = Array(8).fill(-1);
-      for (let r = 0; r < 8; r++) {
-        for (let c = 0; c < 8; c++) {
-          if (sol[r][c] === 1) arr[r] = c;
-        }
-      }
-      return arr;
-    });
-    setSolutions(converted);
+  // Fetch solutions from backend API
+  const findAllSolutions = async () => {
+    const res = await fetch('http://localhost:5000/api/eightqueens/solutions');
+    const data = await res.json();
+    setSolutions(data.solutions);
     setSolutionIndex(0);
-    setBoard(converted[0]);
+    setBoard(data.solutions[0]);
     setShowingSolution(true);
   };
 
