@@ -84,6 +84,58 @@ function EightQueens() {
     setSolutionIndex(0);
   };
 
+  // Helper function to convert board array to algebraic notation string
+  const convertToAlgebraic = (board) => {
+    const colLabels = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    const positions = [];
+    for (let row = 0; row < 8; row++) { // Assuming row 0 is the bottom row (rank 1)
+      const col = board[row];
+      if (col !== -1) { // Only include placed queens
+        const algebraicCol = colLabels[col];
+        // Corrected calculation: row index + 1 gives the rank number
+        const algebraicRow = row + 1; 
+        positions.push(`${algebraicCol}${algebraicRow}`);
+      }
+    }
+    // Sort alphabetically/numerically for consistent unique key
+    return positions.sort().join(','); 
+  };
+
+  const submitSolution = async () => {
+    const answer = convertToAlgebraic(board); 
+    const gameName = "Eight Queens"; // Define the game name
+  
+    try { // Add try...catch for fetch errors
+      const res = await fetch('http://localhost:5000/api/queen-answers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // Include gameName in the body
+        body: JSON.stringify({ playerName, answer, gameName }) 
+      });
+  
+      // Check if response is ok before parsing JSON
+      if (!res.ok) {
+          // Try to parse error message from backend if available
+          let errorData;
+          try {
+              errorData = await res.json();
+          } catch (parseError) {
+              // If parsing fails, use status text
+              throw new Error(res.statusText || `HTTP error! status: ${res.status}`);
+          }
+          throw new Error(errorData.message || errorData.error || `HTTP error! status: ${res.status}`);
+      }
+  
+      const data = await res.json();
+      alert(data.message); // Success
+      resetBoard(); // Reset board on successful submission
+  
+    } catch (error) {
+        console.error("Submission failed:", error);
+        alert('Submission failed: ' + error.message); // Show specific error
+    }
+  };
+
   return (
     <div className="h-screen bg-gradient-to-b from-gray-900 to-gray-800 flex flex-col justify-between overflow-auto">
       <GameBackground />
@@ -132,6 +184,14 @@ function EightQueens() {
                   className="px-3 py-1.5 bg-purple-700 hover:bg-purple-600 text-sm text-white rounded-md transition-colors duration-200 shadow"
                 >
                   Next Solution
+                </button>
+              )}
+              {isSolutionValid() && !showingSolution && (
+                <button
+                  onClick={submitSolution}
+                  className="px-3 py-1.5 bg-green-700 hover:bg-green-600 text-sm text-white rounded-md transition-colors duration-200 shadow"
+                >
+                  Submit Solution
                 </button>
               )}
             </div>
