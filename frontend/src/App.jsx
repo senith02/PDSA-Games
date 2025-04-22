@@ -1,32 +1,21 @@
 import { useState } from 'react'
+import { Routes, Route, useNavigate } from 'react-router-dom'
 import GameMenu from './components/GameMenu'
-import TowerOfHanoi from './components/TowerOfHanoi'
+import EightQueens from './pages/EightQueens'
+import KnightsTour from './pages/KnightsTour'
+import TSPGame from './components/travelingSalesmen/TSPGame'
 
 function App() {
-  const [currentGame, setCurrentGame] = useState(null);
+  const [count, setCount] = useState(0)
 
-  // Function to handle navigation to a specific game
-  const navigateToGame = (gameId) => {
-    setCurrentGame(gameId);
-  };
-
-  // Function to return to the game menu
-  const returnToMenu = () => {
-    setCurrentGame(null);
-  };
-
-  // Render the appropriate component based on currentGame state
-  const renderCurrentView = () => {
-    switch (currentGame) {
-      case 'hanoi':
-        return <TowerOfHanoi onBack={returnToMenu} />;
-      // Add cases for other games when they're implemented
-      default:
-        return <GameMenu onGameSelect={navigateToGame} />;
-    }
-  };
-
-  return renderCurrentView();
+  return (
+    <Routes>
+      <Route path="/" element={<GameMenu />} />
+      <Route path='/eightqueens' element={<EightQueens />} />
+      <Route path='/knight' element={<KnightsTour />} />
+      <Route path='/tsp' element={<TSPGame />} />
+    </Routes>
+  )
 }
 
 export default App
