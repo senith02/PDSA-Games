@@ -1,13 +1,7 @@
 {
-<<<<<<< HEAD
   "name": "pdsa-games-backend",
   "version": "1.0.0",
   "description": "Backend for PDSA Games",
-=======
-  "name": "react-mongo-pratice",
-  "version": "1.0.0",
-  "type": "module",
->>>>>>> newwTowerOfHanoi
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -15,18 +9,11 @@
   },
   "dependencies": {
     "cors": "^2.8.5",
-<<<<<<< HEAD
     "express": "^4.21.2",
     "mongoose": "^8.13.2",
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
-=======
-    "express": "^4.17.1"
-  },
-  "devDependencies": {
-    "nodemon": "^2.0.7"
->>>>>>> newwTowerOfHanoi
   }
 }
