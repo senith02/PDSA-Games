@@ -6,7 +6,7 @@ import PlayerModal from './PlayerModal';
  * GameMenu component serves as the landing page for AlgoGameHub
  * Displays a grid of game options for the user to select from
  */
-function GameMenu() {
+function GameMenu({ onGameSelect }) {
   // State to track which game is selected
   const [selectedGame, setSelectedGame] = useState(null);
   // State to handle animation effects
@@ -73,8 +73,9 @@ function GameMenu() {
     
     console.log(`Starting game: ${selectedGame} with player: ${playerName}`);
     
-    // Simulate game loading with a timeout
+    // Short delay for animation before navigating to the selected game
     setTimeout(() => {
+      onGameSelect(selectedGame);
       setIsPlaying(false);
       navigate(`/${selectedGame}`); // Redirect to the selected game's page
     }, 1500);
