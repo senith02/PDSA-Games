@@ -13,7 +13,10 @@ connectDB(); // Connect to MongoDB
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json()); // Add this line to parse JSON requests
+
+// MongoDB Connection
+connectDB(); // Call the function to connect to MongoDB
 
 // API routes
 app.use('/api/knights-tour', knightsTourRoutes);
@@ -26,10 +29,7 @@ app.get('/', (req, res) => {
   res.json({ message: 'Algorithm Games API' });
 });
 
-// Start server - ensure this is the last action in the file
+// Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-// Remove or comment out any testing code that might be interfering with server start
-// The Knight's Tour algorithm tests will now only run when endpoints are called
