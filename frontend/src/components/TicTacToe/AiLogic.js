@@ -21,70 +21,30 @@ const getEmptyCells = (board) => {
   };
   
   // Win condition checker for 5x5 (5 in a row)
-   
-    const checkWin = (board, player) => {
-    // Check rows   
-    for (let row = 0; row < 5; row++) {
-      for (let col = 0; col < 1; col++) {
-        const idx = row * 5 + col;
-        if (
-          board[idx] === player && 
-          board[idx] === board[idx + 1] && 
-          board[idx] === board[idx + 2] && 
-          board[idx] === board[idx + 3] && 
-          board[idx] === board[idx + 4]
-        ) return true;
+  const checkWin = (board, player) => {
+    const n = 5; // Board size
+    const lines = [];
+
+    // Generate rows
+    for (let i = 0; i < n; i++) {
+      lines.push(Array.from({ length: n }, (_, k) => i * n + k));
+    }
+    // Generate columns
+    for (let j = 0; j < n; j++) {
+      lines.push(Array.from({ length: n }, (_, k) => k * n + j));
+    }
+    // Generate diagonals
+    lines.push(Array.from({ length: n }, (_, k) => k * n + k)); // TL-BR
+    lines.push(Array.from({ length: n }, (_, k) => k * n + (n - 1 - k))); // TR-BL
+
+    // Check all lines
+    for (let i = 0; i < lines.length; i++) {
+      const [a, b, c, d, e] = lines[i];
+      if (board[a] === player && board[b] === player && board[c] === player && board[d] === player && board[e] === player) {
+        return true; // Found a win
       }
     }
-
-
-    // Check columns
-   
-    for (let col = 0; col < 5; col++) {
-        for (let row = 0; row < 1; row++) {
-            const idx = row * 5 + col;
-            if (
-            board[idx] === player && 
-            board[idx] === board[idx + 5] && 
-            board[idx] === board[idx + 10] && 
-            board[idx] === board[idx + 15] && 
-            board[idx] === board[idx + 20]
-            ) return true;
-        }
-        }
-
-    // Check diagonals (top-left to bottom-right)
-     
-    for (let row = 0; row < 1; row++) {
-        for (let col = 0; col < 1; col++) {
-            const idx = row * 5 + col;
-            if (
-            board[idx] === player && 
-            board[idx] === board[idx + 6] && 
-            board[idx] === board[idx + 12] && 
-            board[idx] === board[idx + 18] && 
-            board[idx] === board[idx + 24]
-            ) return true;
-        }
-    }
-
-    // Check diagonals (top-right to bottom-left)
-   
-    for (let row = 0; row < 1; row++) {
-        for (let col = 4; col > 3; col--) {
-            const idx = row * 5 + col;
-            if (
-            board[idx] === player && 
-            board[idx] === board[idx + 4] && 
-            board[idx] === board[idx + 8] && 
-            board[idx] === board[idx + 12] && 
-            board[idx] === board[idx + 16]
-            ) return true;
-        }
-    }
-    return false;
-
-    
+    return false; // No win found
   };
   
   // ======================
