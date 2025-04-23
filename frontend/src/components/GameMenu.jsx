@@ -55,11 +55,6 @@ function GameMenu() {
   const handleGameSelect = (gameId) => {
     setSelectedGame(gameId);
     console.log(`Selected game: ${gameId}`);
-    
-    // Navigate to the selected game's page
-    if (gameId === 'tictactoe') {
-      navigate('/tictactoe'); // Redirect to Tic-Tac-Toe page
-    }
   };
   
   // Handler for play button - show modal instead of immediately playing
