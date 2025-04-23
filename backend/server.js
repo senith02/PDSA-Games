@@ -15,9 +15,6 @@ connectDB(); // Connect to MongoDB
 app.use(cors());
 app.use(express.json()); // Add this line to parse JSON requests
 
-// MongoDB Connection
-connectDB(); // Call the function to connect to MongoDB
-
 // API routes
 app.use('/api/knights-tour', knightsTourRoutes);
 app.use('/api/tsp', tspRoutes);
