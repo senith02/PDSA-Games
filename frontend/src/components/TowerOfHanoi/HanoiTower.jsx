@@ -39,7 +39,7 @@ function HanoiTower({ towers, onTowerClick, selectedTower, disks, gameComplete }
                 return (
                   <div 
                     key={diskIndex} 
-                    className="disk-item relative z-20 rounded-md shadow-md mb-1 transition-all duration-300"
+                    className="disk-item relative z-20 rounded-md shadow-md mb-1"
                     style={{
                       width: `${diskWidth}px`,
                       height: '20px',
@@ -49,7 +49,7 @@ function HanoiTower({ towers, onTowerClick, selectedTower, disks, gameComplete }
                       transform: tower === towers[2] && gameComplete
                         ? 'scale(1.05)' // subtle pulse effect for completed tower
                         : 'scale(1)',
-                      transition: 'all 0.2s ease'
+                      transition: 'all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55)' // Bouncy animation
                     }}
                   >
                     <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white">
