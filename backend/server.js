@@ -5,6 +5,7 @@ const knightsTourRoutes = require('./routes/knightsTourRoutes');
 const tspRoutes = require('./travelingSalesmenBE/tspRoutes');
 const eightQueensRoutes = require('./routes/eightQueensRoutes');
 const correctAnswerRoutes = require('./routes/QueensAnswer');
+const towerOfHanoiRoutes = require('./routes/towerOfHanoiRoutes'); // Add this line
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -20,6 +21,7 @@ app.use('/api/knights-tour', knightsTourRoutes);
 app.use('/api/tsp', tspRoutes);
 app.use('/api/eightqueens', eightQueensRoutes);
 app.use('/api/queen-answers', correctAnswerRoutes);
+app.use('/api/tower-of-hanoi', towerOfHanoiRoutes); // Add this line
 
 // Default route
 app.get('/', (req, res) => {
