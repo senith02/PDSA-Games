@@ -36,15 +36,26 @@ function TowerOfHanoi() {
     if (isAutoSolving && autoSolveIndex < autoSolveMoves.length) {
       const timer = setTimeout(() => {
         const [fromTower, toTower] = autoSolveMoves[autoSolveIndex];
-        moveDisk(fromTower, toTower, true);
-        setAutoSolveIndex(autoSolveIndex + 1);
+        
+        // Execute the move on the towers
+        const moveSuccessful = moveDisk(fromTower, toTower, true);
+        
+        if (moveSuccessful) {
+          // Only increment if the move was successful
+          setAutoSolveIndex(prevIndex => prevIndex + 1);
+        } else {
+          console.error(`Invalid move in auto-solve: [${fromTower}, ${toTower}]`);
+          // Skip this move if invalid
+          setAutoSolveIndex(prevIndex => prevIndex + 1);
+        }
       }, 800); // Animation speed - adjust as needed
       
       return () => clearTimeout(timer);
     } else if (isAutoSolving && autoSolveIndex >= autoSolveMoves.length) {
       setIsAutoSolving(false);
+      setGameComplete(true); // Mark the game as complete when auto-solve finishes
     }
-  }, [isAutoSolving, autoSolveIndex, autoSolveMoves]);
+  }, [isAutoSolving, autoSolveIndex, autoSolveMoves, towers]); // Added towers to dependencies to ensure it re-runs after state updates
 
   // Check if the game is complete
   useEffect(() => {
@@ -90,14 +101,14 @@ function TowerOfHanoi() {
   const moveDisk = (fromTower, toTower, isAutoMove = false) => {
     // Validate move
     if (fromTower === toTower) {
-      return;
+      return false; // Return false for invalid move
     }
 
     const sourceTower = [...towers[fromTower]];
     const targetTower = [...towers[toTower]];
 
     if (sourceTower.length === 0) {
-      return;
+      return false; // Return false for invalid move
     }
 
     // Get the topmost disk (last element in the array)
@@ -105,7 +116,7 @@ function TowerOfHanoi() {
     
     // Check if move is valid (smaller disk onto larger disk or empty rod)
     if (targetTower.length > 0 && targetTower[targetTower.length - 1] < diskToMove) {
-      return;
+      return false; // Return false for invalid move
     }
 
     // Make the move - remove from source and add to target
@@ -121,12 +132,17 @@ function TowerOfHanoi() {
     if (!isAutoMove) {
       setMoves(moves + 1);
     }
+    
+    return true; // Return true for successful move
   };
 
   const fetchSolution = async () => {
     if (isAutoSolving) return;
 
     try {
+      // Start loading state
+      setIsAutoSolving(true); 
+      
       const response = await axios.get('/api/tower-of-hanoi/solution', {
         params: {
           algorithm,
@@ -134,14 +150,23 @@ function TowerOfHanoi() {
         }
       });
 
-      setExecutionTime(response.data.executionTime);
-      setAutoSolveMoves(response.data.moves);
-      setIsAutoSolving(true);
-      setAutoSolveIndex(0);
-      resetGame();
+      if (response.data && Array.isArray(response.data.moves)) {
+        setExecutionTime(response.data.executionTime || 0);
+        setAutoSolveMoves(response.data.moves);
+        
+        // Reset the game and prepare for auto-solve animation
+        resetGame();
+        setAutoSolveIndex(0);
+        
+        console.log(`Auto-solve started: ${response.data.moves.length} moves to animate`);
+      } else {
+        throw new Error('Invalid response format - moves array not found');
+      }
 
     } catch (error) {
       console.error('Error fetching solution:', error);
+      setIsAutoSolving(false);
+      alert('Failed to fetch solution. Please try again.');
     }
   };
 
