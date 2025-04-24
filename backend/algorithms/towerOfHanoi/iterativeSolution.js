@@ -38,7 +38,7 @@ function solveIteratively(n, source = 0, auxiliary = 1, target = 2) {
     if (move % 3 === 1) {
       // Move between source and target
       if (towers[source].length > 0 && 
-         (towers[target].length === 0 || towers[source][0] < towers[target][0])) {
+         (towers[target].length === 0 || towers[source][towers[source].length - 1] < towers[target][towers[target].length - 1])) {
         fromTower = source;
         toTower = target;
       } else {
@@ -48,7 +48,7 @@ function solveIteratively(n, source = 0, auxiliary = 1, target = 2) {
     } else if (move % 3 === 2) {
       // Move between source and auxiliary
       if (towers[source].length > 0 && 
-         (towers[auxiliary].length === 0 || towers[source][0] < towers[auxiliary][0])) {
+         (towers[auxiliary].length === 0 || towers[source][towers[source].length - 1] < towers[auxiliary][towers[auxiliary].length - 1])) {
         fromTower = source;
         toTower = auxiliary;
       } else {
@@ -58,7 +58,7 @@ function solveIteratively(n, source = 0, auxiliary = 1, target = 2) {
     } else {
       // Move between auxiliary and target
       if (towers[auxiliary].length > 0 && 
-         (towers[target].length === 0 || towers[auxiliary][0] < towers[target][0])) {
+         (towers[target].length === 0 || towers[auxiliary][towers[auxiliary].length - 1] < towers[target][towers[target].length - 1])) {
         fromTower = auxiliary;
         toTower = target;
       } else {
@@ -67,9 +67,9 @@ function solveIteratively(n, source = 0, auxiliary = 1, target = 2) {
       }
     }
     
-    // Make the move
-    const disk = towers[fromTower].shift();
-    towers[toTower].unshift(disk);
+    // Make the move - get from the last element (top disk)
+    const disk = towers[fromTower].pop();
+    towers[toTower].push(disk);
     
     // Record the move
     moves.push([fromTower, toTower]);

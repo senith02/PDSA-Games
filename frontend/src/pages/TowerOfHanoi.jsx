@@ -100,16 +100,17 @@ function TowerOfHanoi() {
       return;
     }
 
-    const diskToMove = sourceTower[0];
+    // Get the topmost disk (last element in the array)
+    const diskToMove = sourceTower[sourceTower.length - 1];
     
     // Check if move is valid (smaller disk onto larger disk or empty rod)
-    if (targetTower.length > 0 && targetTower[0] < diskToMove) {
+    if (targetTower.length > 0 && targetTower[targetTower.length - 1] < diskToMove) {
       return;
     }
 
-    // Make the move
-    sourceTower.shift();
-    targetTower.unshift(diskToMove);
+    // Make the move - remove from source and add to target
+    sourceTower.pop(); // Remove the last element
+    targetTower.push(diskToMove); // Add to end of target tower
 
     // Update towers state
     const newTowers = [...towers];
