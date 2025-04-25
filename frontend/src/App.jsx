@@ -8,7 +8,6 @@ import TSPGame from './components/travelingSalesmen/TSPGame'
 import TowerOfHanoi from './pages/TowerOfHanoi' // Add this line
 
 function App() {
-  const [count, setCount] = useState(0)
 
   return (
     <Routes>
