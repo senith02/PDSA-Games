@@ -1,24 +1,31 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const mongoose = require('mongoose');
 const router = express.Router();
 
-// SQLite Database Setup
-const db = new sqlite3.Database(':memory:', (err) => {
-  if (err) {
-    console.error('Database connection error:', err.message);
-  } else {
-    console.log('Connected to SQLite database');
-    db.run(`CREATE TABLE game_records (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      player_name TEXT,
-      home_city TEXT,
-      selected_cities TEXT,
-      shortest_route TEXT,
-      route_distance INTEGER,
-      algorithm TEXT,
-      time_taken INTEGER
-    )`);
-  }
+// Import the MongoDB connection from db.js
+const connectDB = require('../db/db');
+
+// Define Mongoose Schema for tsp_game collection
+const gameRecordSchema = new mongoose.Schema({
+  player_name: { type: String, required: true },
+  home_city: { type: String, required: true },
+  selected_cities: { type: String, required: true },
+  shortest_route: { type: String, required: true },
+  route_distance: { type: Number, required: true },
+  algorithm: { type: String, required: true },
+  time_taken: { type: Number, required: true },
+  created_at: { type: Date, default: Date.now },
+});
+
+// Create Mongoose Model for tsp_game collection
+const GameRecord = mongoose.model('tsp_game', gameRecordSchema, 'tsp_game');
+
+// Ensure MongoDB connection before handling requests
+connectDB().then(() => {
+  console.log('MongoDB setup complete in tspRoutes');
+}).catch(err => {
+  console.error('Failed to setup MongoDB in tspRoutes:', err);
+  process.exit(1);
 });
 
 // Helper function to generate random distances (50-100 km)
@@ -48,10 +55,18 @@ const cityToIndex = (city) => {
   return index;
 };
 
+// Helper function to convert index to city letter
+const indexToCity = (index) => {
+  const cities = 'ABCDEFGHIJ';
+  if (index < 0 || index >= cities.length) {
+    throw new Error(`Invalid index: ${index}`);
+  }
+  return cities[index];
+};
+
 // TSP Algorithms
 const bruteForceTSP = (matrix, start, cities) => {
   const startTime = performance.now();
-  const n = cities.length;
   let minDistance = Infinity;
   let bestPath = [];
 
@@ -120,7 +135,7 @@ const dynamicProgrammingTSP = (matrix, start, cities) => {
 
   const startIdx = cities.indexOf(start);
   if (startIdx === -1) {
-    throw new Error(`Start city ${start} not found in cities array`);
+    throw new Error(`Start city index ${start} not found in cities array`);
   }
   dp[1 << startIdx][startIdx] = 0;
 
@@ -130,16 +145,9 @@ const dynamicProgrammingTSP = (matrix, start, cities) => {
       for (let v = 0; v < n; v++) {
         if (mask & (1 << v)) continue;
         const newMask = mask | (1 << v);
-        const uIdx = cityToIndex(cities[u]);
-        const vIdx = cityToIndex(cities[v]);
-        const matrixValue = matrix[uIdx][vIdx];
-        if (typeof matrixValue !== 'number') {
-          console.error('Invalid matrix value:', { uIdx, vIdx, matrixValue });
-          throw new Error('Invalid matrix value');
-        }
-        const newDist = dp[mask][u] + matrixValue;
+        const newDist = dp[mask][u] + matrix[cities[u]][cities[v]];
         if (isNaN(newDist)) {
-          console.error('newDist is NaN:', { dp: dp[mask][u], matrixValue, uIdx, vIdx });
+          console.error('newDist is NaN:', { dp: dp[mask][u], matrixValue: matrix[cities[u]][cities[v]], u, v });
           throw new Error('newDist is NaN');
         }
         if (newDist < dp[newMask][v]) {
@@ -153,11 +161,9 @@ const dynamicProgrammingTSP = (matrix, start, cities) => {
   let minDist = Infinity;
   let lastCity = -1;
   const finalMask = (1 << n) - 1;
-  const startIdxInMatrix = cityToIndex(start);
   for (let v = 0; v < n; v++) {
     if (v === startIdx) continue;
-    const vIdx = cityToIndex(cities[v]);
-    const dist = dp[finalMask][v] + matrix[vIdx][startIdxInMatrix];
+    const dist = dp[finalMask][v] + matrix[cities[v]][start];
     if (dist < minDist) {
       minDist = dist;
       lastCity = v;
@@ -182,7 +188,7 @@ const dynamicProgrammingTSP = (matrix, start, cities) => {
 };
 
 // API Routes
-router.post('/start-game', (req, res) => {
+router.post('/start-game', async (req, res) => {
   const { homeCity } = req.body;
   const validCities = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
 
@@ -190,12 +196,20 @@ router.post('/start-game', (req, res) => {
     return res.status(400).json({ error: 'Invalid or missing home city.' });
   }
 
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(500).json({ error: 'Database not connected' });
+  }
+
   const matrix = generateDistanceMatrix();
   res.json({ matrix, homeCity });
 });
 
-router.post('/solve-tsp', (req, res) => {
+router.post('/solve-tsp', async (req, res) => {
   const { matrix, homeCity, selectedCities, playerName } = req.body;
+
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(500).json({ error: 'Database not connected' });
+  }
 
   if (!selectedCities || selectedCities.length < 2) {
     return res.status(400).json({ error: 'Please select at least 2 cities to visit.' });
@@ -212,40 +226,38 @@ router.post('/solve-tsp', (req, res) => {
   if (!Array.isArray(matrix) || matrix.length !== 10 || !matrix.every(row => Array.isArray(row) && row.length === 10)) {
     return res.status(400).json({ error: 'Invalid distance matrix: must be a 10x10 array' });
   }
-  if (!matrix.every(row => row.every(val => typeof val === 'number'))) {
+  if (!matrix.every(row => row.every(val => typeof val === 'number' && !isNaN(val)))) {
     return res.status(400).json({ error: 'Invalid distance matrix: all values must be numbers' });
   }
 
-  const cityIndices = selectedCities.map(city => 'ABCDEFGHIJ'.indexOf(city));
-  const citiesWithHome = [homeCity, ...selectedCities.filter(city => city !== homeCity)];
+  const cityIndices = selectedCities.map(city => cityToIndex(city));
+  const citiesWithHomeIndices = [cityToIndex(homeCity), ...cityIndices.filter(idx => idx !== cityToIndex(homeCity))];
 
   try {
     const results = {
-      bruteForce: bruteForceTSP(matrix, 'ABCDEFGHIJ'.indexOf(homeCity), cityIndices),
-      nearestNeighbor: nearestNeighborTSP(matrix, 'ABCDEFGHIJ'.indexOf(homeCity), cityIndices),
-      dynamicProgramming: dynamicProgrammingTSP(matrix, homeCity, citiesWithHome),
+      bruteForce: bruteForceTSP(matrix, cityToIndex(homeCity), cityIndices),
+      nearestNeighbor: nearestNeighborTSP(matrix, cityToIndex(homeCity), cityIndices),
+      dynamicProgramming: dynamicProgrammingTSP(matrix, cityToIndex(homeCity), citiesWithHomeIndices),
     };
 
-    Object.entries(results).forEach(([algorithm, result]) => {
-      const route = algorithm === 'dynamicProgramming'
-        ? result.path.join(' -> ')
-        : result.path.map(idx => 'ABCDEFGHIJ'[idx]).join(' -> ');
+    const insertPromises = [];
+    for (const [algorithm, result] of Object.entries(results)) {
+      const route = result.path.map(idx => indexToCity(idx)).join(' -> ');
+      const gameRecord = new GameRecord({
+        player_name: playerName || 'Anonymous',
+        home_city: homeCity,
+        selected_cities: selectedCities.join(','),
+        shortest_route: route,
+        route_distance: result.distance,
+        algorithm,
+        time_taken: result.time,
+      });
+      insertPromises.push(gameRecord.save());
+    }
 
-      db.run(
-        `INSERT INTO game_records (player_name, home_city, selected_cities, shortest_route, route_distance, algorithm, time_taken) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [
-          playerName,
-          homeCity,
-          selectedCities.join(','),
-          route,
-          result.distance,
-          algorithm,
-          result.time,
-        ],
-        (err) => {
-          if (err) console.error('Database insert error:', err.message);
-        }
-      );
+    await Promise.all(insertPromises).catch(err => {
+      console.error('MongoDB insert error:', err.message);
+      throw new Error('Failed to save game records');
     });
 
     res.json(results);
