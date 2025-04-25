@@ -7,8 +7,8 @@ import ResultsDisplay from './ResultsDisplay';
 import axios from 'axios';
 
 const TSPGame = () => {
-  const [matrix, setMatrix] = useState([]);
-  const [homeCity, setHomeCity] = useState(''); // Home city is initially empty
+  const [matrix, setMatrix] = useState(null); // Initialize as null to distinguish from empty array
+  const [homeCity, setHomeCity] = useState('');
   const [selectedCities, setSelectedCities] = useState([]);
   const [playerName, setPlayerName] = useState('');
   const [results, setResults] = useState(null);
@@ -30,14 +30,19 @@ const TSPGame = () => {
     }
     try {
       const response = await axios.post('http://localhost:5000/api/tsp/start-game', { homeCity });
-      console.log('Start game response:', response.data); // Debug
-      setMatrix(response.data.matrix);
+      console.log('Start game response:', response.data);
+      // Validate matrix
+      const { matrix } = response.data;
+      if (!Array.isArray(matrix) || matrix.length !== 10 || !matrix.every(row => Array.isArray(row) && row.length === 10)) {
+        throw new Error('Received invalid distance matrix from server');
+      }
+      setMatrix(matrix);
       setHomeCity(response.data.homeCity);
       setSelectedCities([]);
       setResults(null);
     } catch (error) {
       console.error('Error starting game:', error.response?.data || error.message);
-      alert('Failed to start the game. Please ensure the backend server is running on http://localhost:5000.');
+      alert(`Failed to start the game: ${error.response?.data?.error || error.message}. Please ensure the backend server is running on http://localhost:5000.`);
     }
   };
 
@@ -52,31 +57,42 @@ const TSPGame = () => {
 
   const handleHomeCitySelect = (city) => {
     setHomeCity(city);
-    setSelectedCities([]); // Reset selected cities when home city changes
-    setResults(null); // Clear results
+    setSelectedCities([]);
+    setResults(null);
+    setMatrix(null); // Reset matrix when home city changes
   };
 
   const solveTSP = async () => {
     if (!playerName) {
-      alert('Player name is missing. Please restart the game.');
+      alert('Please enter a player name and start the game.');
+      return;
+    }
+    if (!homeCity) {
+      alert('Please select a home city and start the game.');
       return;
     }
     if (selectedCities.length < 2) {
       alert('Please select at least 2 cities to visit.');
       return;
     }
+    if (!matrix || !Array.isArray(matrix) || matrix.length !== 10 || !matrix.every(row => Array.isArray(row) && row.length === 10)) {
+      alert('Distance matrix is invalid or not loaded. Please start a new game.');
+      return;
+    }
+    const payload = {
+      matrix,
+      homeCity,
+      selectedCities,
+      playerName,
+    };
+    console.log('Sending to /solve-tsp:', JSON.stringify(payload, null, 2));
     try {
-      const response = await axios.post('http://localhost:5000/api/tsp/solve-tsp', {
-        matrix,
-        homeCity,
-        selectedCities,
-        playerName,
-      });
-      console.log('Solve TSP response:', response.data); // Debug
+      const response = await axios.post('http://localhost:5000/api/tsp/solve-tsp', payload);
+      console.log('Solve TSP response:', response.data);
       setResults(response.data);
     } catch (error) {
       console.error('Error solving TSP:', error.response?.data || error.message);
-      alert('Failed to solve TSP. Please try again.');
+      alert(`Failed to solve TSP: ${error.response?.data?.error || error.message}`);
     }
   };
 
@@ -127,9 +143,9 @@ const TSPGame = () => {
             solveTSP={solveTSP}
           />
 
-          {(matrix.length > 0 || results) && (
+          {(matrix && matrix.length > 0 || results) && (
             <div className="mt-8 flex flex-col md:flex-row gap-8">
-              {matrix.length > 0 && <DistanceMatrix matrix={matrix} cities={cities} />}
+              {matrix && matrix.length > 0 && <DistanceMatrix matrix={matrix} cities={cities} />}
               {results && <PathVisualization results={results} homeCity={homeCity} />}
             </div>
           )}
