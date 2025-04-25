@@ -1,31 +1,30 @@
 const express = require('express');
-const { MongoClient } = require('mongodb');
+const mongoose = require('mongoose');
 const router = express.Router();
 
-// MongoDB Database Setup
-const uri = 'mongodb://localhost:27017/tsp_game'; // Update with your MongoDB URI
-const client = new MongoClient(uri);
+// Import the MongoDB connection from db.js
+const connectDB = require('../db/db');
 
-let db;
+// Define Mongoose Schema for tsp_game collection
+const gameRecordSchema = new mongoose.Schema({
+  player_name: { type: String, required: true },
+  home_city: { type: String, required: true },
+  selected_cities: { type: String, required: true },
+  shortest_route: { type: String, required: true },
+  route_distance: { type: Number, required: true },
+  algorithm: { type: String, required: true },
+  time_taken: { type: Number, required: true },
+  created_at: { type: Date, default: Date.now },
+});
+
+// Create Mongoose Model for tsp_game collection
+const GameRecord = mongoose.model('tsp_game', gameRecordSchema, 'tsp_game');
 
 // Ensure MongoDB connection before handling requests
-async function connectToMongoDB() {
-  try {
-    await client.connect();
-    console.log('Connected to MongoDB');
-    db = client.db('tsp_game');
-    await db.collection('game_records').createIndex({ player_name: 1 });
-  } catch (err) {
-    console.error('MongoDB connection error:', err.message);
-    process.exit(1);
-  }
-}
-
-// Call connectToMongoDB and wait for it
-connectToMongoDB().then(() => {
-  console.log('MongoDB setup complete');
+connectDB().then(() => {
+  console.log('MongoDB setup complete in tspRoutes');
 }).catch(err => {
-  console.error('Failed to setup MongoDB:', err);
+  console.error('Failed to setup MongoDB in tspRoutes:', err);
   process.exit(1);
 });
 
@@ -197,7 +196,7 @@ router.post('/start-game', async (req, res) => {
     return res.status(400).json({ error: 'Invalid or missing home city.' });
   }
 
-  if (!db) {
+  if (mongoose.connection.readyState !== 1) {
     return res.status(500).json({ error: 'Database not connected' });
   }
 
@@ -208,7 +207,7 @@ router.post('/start-game', async (req, res) => {
 router.post('/solve-tsp', async (req, res) => {
   const { matrix, homeCity, selectedCities, playerName } = req.body;
 
-  if (!db) {
+  if (mongoose.connection.readyState !== 1) {
     return res.status(500).json({ error: 'Database not connected' });
   }
 
@@ -241,23 +240,19 @@ router.post('/solve-tsp', async (req, res) => {
       dynamicProgramming: dynamicProgrammingTSP(matrix, cityToIndex(homeCity), citiesWithHomeIndices),
     };
 
-    const collection = db.collection('game_records');
     const insertPromises = [];
-
     for (const [algorithm, result] of Object.entries(results)) {
       const route = result.path.map(idx => indexToCity(idx)).join(' -> ');
-      insertPromises.push(
-        collection.insertOne({
-          player_name: playerName || 'Anonymous',
-          home_city: homeCity,
-          selected_cities: selectedCities.join(','),
-          shortest_route: route,
-          route_distance: result.distance,
-          algorithm,
-          time_taken: result.time,
-          created_at: new Date(),
-        })
-      );
+      const gameRecord = new GameRecord({
+        player_name: playerName || 'Anonymous',
+        home_city: homeCity,
+        selected_cities: selectedCities.join(','),
+        shortest_route: route,
+        route_distance: result.distance,
+        algorithm,
+        time_taken: result.time,
+      });
+      insertPromises.push(gameRecord.save());
     }
 
     await Promise.all(insertPromises).catch(err => {
