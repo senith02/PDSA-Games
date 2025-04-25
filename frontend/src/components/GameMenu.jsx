@@ -49,14 +49,14 @@ function GameMenu() {
     }
   ];
   
+  const navigate = useNavigate(); // Initialize useNavigate hook
+
   // Handler for game selection
   const handleGameSelect = (gameId) => {
     setSelectedGame(gameId);
     console.log(`Selected game: ${gameId}`);
   };
   
-  const navigate = useNavigate(); // Initialize useNavigate hook
-
   // Handler for play button - show modal instead of immediately playing
   const handlePlay = () => {
     if (!selectedGame) return;
