@@ -65,6 +65,7 @@ const indexToCity = (index) => {
 };
 
 // TSP Algorithms
+// Brute Force TSP
 const bruteForceTSP = (matrix, start, cities) => {
   const startTime = performance.now();
   let minDistance = Infinity;
@@ -95,6 +96,7 @@ const bruteForceTSP = (matrix, start, cities) => {
   return { path: [start, ...bestPath, start], distance: minDistance, time: endTime - startTime };
 };
 
+// Nearest Neighbor TSP
 const nearestNeighborTSP = (matrix, start, cities) => {
   const startTime = performance.now();
   let current = start;
@@ -123,6 +125,7 @@ const nearestNeighborTSP = (matrix, start, cities) => {
   return { path, distance: totalDistance, time: endTime - startTime };
 };
 
+// Dynamic Programming TSP
 const dynamicProgrammingTSP = (matrix, start, cities) => {
   const startTime = performance.now();
   const n = cities.length;

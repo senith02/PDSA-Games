@@ -24,12 +24,12 @@ const TSPGame = () => {
   }, []);
 
   const startGame = async () => {
-    if (!homeCity) {
-      alert('Please select a home city.');
-      return;
-    }
+    // Randomly select a home city
+    const randomHomeCity = cities[Math.floor(Math.random() * cities.length)];
+    setHomeCity(randomHomeCity);
+
     try {
-      const response = await axios.post('http://localhost:5000/api/tsp/start-game', { homeCity });
+      const response = await axios.post('http://localhost:5000/api/tsp/start-game', { homeCity: randomHomeCity });
       console.log('Start game response:', response.data);
       // Validate matrix
       const { matrix } = response.data;
@@ -37,7 +37,6 @@ const TSPGame = () => {
         throw new Error('Received invalid distance matrix from server');
       }
       setMatrix(matrix);
-      setHomeCity(response.data.homeCity);
       setSelectedCities([]);
       setResults(null);
     } catch (error) {
@@ -55,20 +54,13 @@ const TSPGame = () => {
     }
   };
 
-  const handleHomeCitySelect = (city) => {
-    setHomeCity(city);
-    setSelectedCities([]);
-    setResults(null);
-    setMatrix(null); // Reset matrix when home city changes
-  };
-
   const solveTSP = async () => {
     if (!playerName) {
       alert('Please enter a player name and start the game.');
       return;
     }
     if (!homeCity) {
-      alert('Please select a home city and start the game.');
+      alert('Please start the game to assign a home city.');
       return;
     }
     if (selectedCities.length < 2) {
@@ -101,24 +93,6 @@ const TSPGame = () => {
       <h1 className="text-4xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-purple-600 text-transparent bg-clip-text">
         Traveling Salesman Problem
       </h1>
-
-      {/* Home City Selector */}
-      {!homeCity && (
-        <div className="mb-6 w-full max-w-md">
-          <h2 className="text-2xl font-semibold mb-2 text-gray-300">Select Your Home City</h2>
-          <div className="flex flex-wrap justify-center gap-3">
-            {cities.map((city) => (
-              <button
-                key={city}
-                onClick={() => handleHomeCitySelect(city)}
-                className="px-4 py-2 bg-gray-700 text-gray-400 rounded-full hover:bg-gray-600 hover:text-gray-300 transition"
-              >
-                {city}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Player Name Display (not editable) */}
       {playerName && (

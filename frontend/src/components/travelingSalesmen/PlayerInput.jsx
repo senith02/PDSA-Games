@@ -4,13 +4,13 @@ const PlayerInput = ({ playerName, setPlayerName, startGame }) => {
   return (
     <div className="mb-4 flex flex-col items-center">
       <div className="mb-4">
-        <label className="text-lg font-medium mr-2 text-gray-300">Player Name:</label>
+        {/*<label className="text-lg font-medium mr-2 text-gray-300">Player Name:</label>
         <input
           type="text"
           value={playerName}
           onChange={(e) => setPlayerName(e.target.value)}
           className="border border-gray-700 bg-gray-800 text-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
-        />
+        />*/}
       </div>
       <button
         onClick={startGame}
