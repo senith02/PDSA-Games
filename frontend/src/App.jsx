@@ -5,9 +5,9 @@ import EightQueens from './pages/EightQueens'
 import KnightsTour from './pages/KnightsTour'
 import TicTacToe from './pages/TicTacToe'
 import TSPGame from './components/travelingSalesmen/TSPGame'
+import TowerOfHanoi from './pages/TowerOfHanoi' // Add this line
 
 function App() {
-  const [count, setCount] = useState(0)
 
   return (
     <Routes>
@@ -16,6 +16,7 @@ function App() {
       <Route path='/knight' element={<KnightsTour />} />
       <Route path='/tictactoe' element={<TicTacToe />} />
       <Route path='/tsp' element={<TSPGame />} />
+      <Route path='/hanoi' element={<TowerOfHanoi />} /> {/* Add this line */}
     </Routes>
   )
 }
