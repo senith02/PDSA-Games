@@ -21,6 +21,7 @@ router.post('/', async (req, res) => {
         if (count >= TOTAL_EIGHT_QUEENS_SOLUTIONS) {
             // Clear only Eight Queens submissions
             await PlayerSubmission.deleteMany({ gameName: 'Eight Queens' });
+            console.log('Max solutions reached for Eight Queens. Cleared previous submissions.');
         }
     }
 

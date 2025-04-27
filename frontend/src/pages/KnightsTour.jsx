@@ -42,6 +42,7 @@ function KnightsTour() {
   const [isVerified, setIsVerified] = useState(false);
   const [isLoading, setIsLoading] = useState(false); // Add loading state
   const [errorMessage, setErrorMessage] = useState(''); // Add error state
+  const [startTime, setStartTime] = useState(null); // Add startTime state
   
   // Add a function to call the backend API for solutions
   const fetchAlgorithmSolution = async (algorithm) => {
@@ -134,6 +135,8 @@ function KnightsTour() {
     setBacktrackingSolution(null);
     setWarnsdorffSolution(null);
     setIsVerified(false);
+    // Start timing when the game begins
+    setStartTime(performance.now());
   };
   
   // Check if a move is valid
@@ -174,8 +177,18 @@ function KnightsTour() {
         setMoveNumber(newMoveNumber);
         setGameStatus('won');
         
-        // Save the solution to the database
-        savePlayerSolution();
+        // Calculate time taken
+        const timeTaken = performance.now() - startTime;
+        
+        // Submit win to database
+        submitWin(
+          playerName,
+          newBoard,
+          board.findIndex(row => row.includes(0)), // startRow
+          board[board.findIndex(row => row.includes(0))].indexOf(0), // startCol
+          timeTaken
+        );
+        
         return;
       }
       
@@ -199,6 +212,18 @@ function KnightsTour() {
       // Update game status if no valid moves remain
       if (!hasValidMovesLeft) {
         setGameStatus('lost');
+        
+        // Calculate time taken
+        const timeTaken = performance.now() - startTime;
+        
+        // Submit loss to database
+        submitLoss(
+          playerName,
+          newBoard,
+          board.findIndex(row => row.includes(0)), // startRow
+          board[board.findIndex(row => row.includes(0))].indexOf(0), // startCol
+          timeTaken
+        );
       }
     }
   };
@@ -287,6 +312,118 @@ function KnightsTour() {
     setPlayerName(newName);
     localStorage.setItem('playerName', newName);
   };
+
+  async function submitSolution(playerName, solution, startRow, startCol) {
+    try {
+      const response = await fetch('http://localhost:5000/api/knights-tour/submit-solution', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          playerName,
+          startRow,
+          startCol,
+          solution,
+          algorithm: 'player', // Since this is a player solution
+          timeTaken: performance.now() - startTime // If you're tracking time
+        }),
+      });
+  
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Error submitting solution');
+      }
+      
+      // Show success message to user
+      alert('Congratulations! Your solution has been recorded.');
+      
+    } catch (error) {
+      console.error('Error:', error);
+      alert(`Failed to submit solution: ${error.message}`);
+    }
+  }
+
+  // For winning attempts
+  async function submitWin(playerName, solution, startRow, startCol, timeTaken) {
+    try {
+      const response = await fetch('http://localhost:5000/api/knights-tour/submit-result', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          playerName,
+          startRow,
+          startCol,
+          solution,
+          movesCompleted: 64, // Full tour completed
+          outcome: 'win',
+          algorithm: 'player',
+          timeTaken
+        }),
+      });
+  
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Error submitting solution');
+      }
+      
+      // Show win message
+      alert('Congratulations! You completed the Knight\'s Tour!');
+      
+    } catch (error) {
+      console.error('Error:', error);
+      alert(`Failed to submit solution: ${error.message}`);
+    }
+  }
+  
+  // For losing attempts (player gives up or makes invalid move)
+  async function submitLoss(playerName, partialSolution, startRow, startCol, timeTaken) {
+    try {
+      // Count the moves made (non-negative numbers in the solution)
+      let movesCompleted = 0;
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (partialSolution[r][c] >= 0) {
+            movesCompleted++;
+          }
+        }
+      }
+  
+      const response = await fetch('http://localhost:5000/api/knights-tour/submit-result', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          playerName,
+          startRow,
+          startCol,
+          solution: partialSolution,
+          movesCompleted,
+          outcome: 'lose',
+          algorithm: 'player',
+          timeTaken
+        }),
+      });
+  
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Error submitting game result');
+      }
+      
+      // Show message
+      alert('Game result recorded. Better luck next time!');
+      
+    } catch (error) {
+      console.error('Error:', error);
+      alert(`Failed to submit result: ${error.message}`);
+    }
+  }
   
   return (
     <div className="h-screen bg-gradient-to-b from-gray-900 to-gray-800 flex flex-col justify-between overflow-auto">
