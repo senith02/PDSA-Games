@@ -45,7 +45,17 @@ function isSafe(board, row, col, n){
             return false;
         }
     }
+
+    // Check the column for queens in previous rows
+    for (i = 0; i < row; i++) {
+        if (board[i][col] === 1) {
+            return false;
+        }
+    }
     return true;
 }
 
-module.exports = { eightQueens };
+module.exports = {
+  isSafe,
+  eightQueens, // Ensure other functions are also exported if needed
+};
