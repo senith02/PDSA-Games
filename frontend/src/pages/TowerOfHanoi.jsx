@@ -11,6 +11,7 @@ function TowerOfHanoi() {
   const navigate = useNavigate();
   const [playerName, setPlayerName] = useState('Player');
   const [disks, setDisks] = useState(3); // Default disk count
+  const [towerCount, setTowerCount] = useState(3); // Default tower count (3 or 4)
   const [towers, setTowers] = useState([[], [], []]);
   const [moves, setMoves] = useState(0);
   const [selectedDisk, setSelectedDisk] = useState(null);
@@ -23,14 +24,14 @@ function TowerOfHanoi() {
   const [executionTime, setExecutionTime] = useState(0);
   const timerRef = useRef(null);
 
-  // Initialize the game on component mount or disk count change
+  // Initialize the game on component mount or when disk count or tower count changes
   useEffect(() => {
     const savedName = localStorage.getItem('playerName');
     if (savedName) {
       setPlayerName(savedName);
     }
     resetGame();
-  }, [disks]);
+  }, [disks, towerCount]);
 
   // Handle auto-solving animation
   useEffect(() => {
@@ -76,7 +77,7 @@ function TowerOfHanoi() {
   // Check if the game is complete
   useEffect(() => {
     // Game is complete when all disks are on the last tower
-    if (towers[2].length === disks && moves > 0) {
+    if (towers[towerCount - 1]?.length === disks && moves > 0) {
       setGameComplete(true);
       
       // Save game result to database
@@ -84,12 +85,16 @@ function TowerOfHanoi() {
         saveGameResult();
       }
     }
-  }, [towers]);
+  }, [towers, disks, towerCount]);
 
   const resetGame = () => {
     // Create array of disks [n, n-1, ..., 1] for the first tower
     const firstTower = Array.from({ length: disks }, (_, i) => disks - i);
-    setTowers([firstTower, [], []]);
+    
+    // Create empty towers based on tower count
+    const newTowers = Array(towerCount).fill().map((_, i) => i === 0 ? firstTower : []);
+    
+    setTowers(newTowers);
     setMoves(0);
     setSelectedDisk(null);
     setGameComplete(false);
@@ -97,8 +102,17 @@ function TowerOfHanoi() {
     setAutoSolveIndex(0);
     setIsAutoSolving(false);
     setExecutionTime(0);
-    // Calculate minimum moves required: 2^n - 1
-    setMinMoves(Math.pow(2, disks) - 1);
+    
+    // Calculate minimum moves required
+    // For 3 towers: 2^n - 1
+    // For 4 towers, use a more complex formula or pre-calculated values
+    if (towerCount === 3) {
+      setMinMoves(Math.pow(2, disks) - 1);
+    } else {
+      // For 4 towers, we use a simplified approximation
+      // Actual optimal solution for 4 towers is more complex
+      setMinMoves(Math.ceil(Math.pow(2, disks/2))); // This is an approximation
+    }
   };
 
   const handleDiskSelect = (towerIndex) => {
@@ -163,7 +177,8 @@ function TowerOfHanoi() {
       const response = await axios.get('/api/tower-of-hanoi/solution', {
         params: {
           algorithm,
-          disks
+          disks,
+          towers: towerCount
         }
       });
 
@@ -197,8 +212,9 @@ function TowerOfHanoi() {
         disks,
         moves,
         optimalMoves: minMoves,
-        timeTaken: Date.now(), // You could add a timer for actual time taken
-        algorithm: 'player'
+        timeTaken: Date.now(),
+        algorithm: 'player',
+        towerCount
       });
       console.log('Game result saved!');
     } catch (error) {
@@ -279,6 +295,7 @@ function TowerOfHanoi() {
               selectedTower={selectedDisk}
               disks={disks} 
               gameComplete={gameComplete}
+              towerCount={towerCount}
             />
 
             {/* Game controls */}
@@ -288,6 +305,8 @@ function TowerOfHanoi() {
               resetGame={resetGame}
               isAutoSolving={isAutoSolving}
               navigate={navigate}
+              towerCount={towerCount}
+              setTowerCount={setTowerCount}
             />
 
             {/* Game stats */}
@@ -321,8 +340,9 @@ function TowerOfHanoi() {
               moves={moves}
               minMoves={minMoves}
               gameComplete={gameComplete}
+              towerCount={towerCount}
             />
-            <HanoiInstructions />
+            <HanoiInstructions towerCount={towerCount} />
           </div>
         </div>
       </div>
