@@ -30,7 +30,8 @@ PDSA-Games/
 │   │   ├── pages/          # Page-level components
 │   │   │   ├── KnightsTour.jsx # Knight's Tour page
 │   │   │   ├── TowerOfHanoi.jsx # Tower of Hanoi page
-│   │   │   └── TicTacToe.jsx # Tic-Tac-Toe page
+│   │   │   ├── TicTacToe.jsx    # Tic-Tac-Toe page
+│   │   │   └── EightQueens.jsx  # Eight Queens page
 │   │   ├── App.jsx         # Root component
 │   │   ├── main.jsx        # Entry point
 │   │   └── index.css       # Global styles
@@ -57,11 +58,6 @@ PDSA-Games/
 │   │   └── db.js           # MongoDB connection setup
 │   ├── server.js           # Main server file
 │   ├── package.json        # Backend dependencies (Express, Mongoose, etc.)
-│   └── .gitignore          # Ignore node_modules, .env, etc.
-├── docs/                   # Documentation and reports
-│   ├── individual-reports/ # Individual report drafts
-│   ├── group-report/       # Group report draft
-│   └── screenshots/        # UI and code screenshots
 ├── .gitignore              # Ignore node_modules, .env, etc.
 └── README.md               # Project overview and setup instructions
 ```
