@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios'; // Add this import for HTTP requests
 import Board from '../components/TicTacToe/Board';
-// Remove PlayerModal import if no longer needed elsewhere
-// import PlayerModal from '../components/PlayerModal'; 
 import { getComputerMove } from '../components/TicTacToe/AiLogic';
-import TicTacToeInstructions from '../components/TicTacToe/TicTacToeInstructions'; // Import new component
-import TicTacToePlayerInfo from '../components/TicTacToe/TicTacToePlayerInfo'; // Import new component
+import TicTacToeInstructions from '../components/TicTacToe/TicTacToeInstructions';
+import TicTacToePlayerInfo from '../components/TicTacToe/TicTacToePlayerInfo';
 import GameBackground from '../components/chessboard/GameBackground'; // Reuse background
 
 const TicTacToe = () => { 
@@ -148,23 +147,43 @@ const TicTacToe = () => {
     // setWinningLine(null); // Optional
   };
 
-  const handleSaveResult = () => {
-    // Implement your logic to send data to the database here
-    // You have access to: playerName, winner, aiAlgorithm, board, gameHistory
-    console.log('Submitting result to database...');
-    console.log('Player:', playerName);
-    console.log('Winner:', winner); // '✕', '⭘', or 'draw'
-    console.log('AI Algorithm:', aiAlgorithm);
-    // You might want to send the final board state or the relevant history entry
-    console.log('Final Board:', board); 
-    
-    // Example: Find the latest history entry for this game end state
-    const latestResult = gameHistory[gameHistory.length - 1];
-    console.log('Latest History Entry:', latestResult);
-
-    // After successful submission, you might want to navigate away or disable the button
-    // navigate('/'); // Option: navigate back to menu after saving
-    alert('Result submitted (check console)!'); // Placeholder feedback
+  const handleSaveResult = async () => {
+    try {
+      // Map winner value to result value
+      let result;
+      if (winner === '✕') {
+        result = 'win'; // Player won
+      } else if (winner === '⭘') {
+        result = 'loss'; // Player lost
+      } else {
+        result = 'draw'; // Game was a draw
+      }
+  
+      // Count moves by counting non-null cells
+      const movesCount = board.filter(cell => cell !== null).length;
+  
+      // Call the API - UPDATE THIS LINE with the full URL
+      const response = await axios.post('http://localhost:5000/api/tic-tac-toe/results', {
+        playerName,
+        result,
+        aiAlgorithm,
+        boardState: board,
+        movesCount
+      });
+  
+      console.log('Result saved successfully:', response.data);
+      alert('Game result saved successfully!');
+      
+    } catch (error) {
+      console.error('Error saving game result:', error);
+      let errorMessage = 'Failed to save game result';
+      
+      if (error.response) {
+        errorMessage += `: ${error.response.data.error || 'Unknown error'}`;
+      }
+      
+      alert(errorMessage);
+    }
   };
 
   return (
