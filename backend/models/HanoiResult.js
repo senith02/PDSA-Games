@@ -28,6 +28,11 @@ const HanoiResultSchema = new mongoose.Schema({
     enum: ['recursive', 'iterative', 'player'],
     default: 'player'
   },
+  towerCount: {
+    type: Number,
+    enum: [3, 4],
+    default: 3
+  },
   createdAt: { 
     type: Date, 
     default: Date.now 

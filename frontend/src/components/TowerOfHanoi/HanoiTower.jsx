@@ -1,8 +1,11 @@
 import React from 'react';
 
-function HanoiTower({ towers, onTowerClick, selectedTower, disks, gameComplete }) {
+function HanoiTower({ towers, onTowerClick, selectedTower, disks, gameComplete, towerCount = 3 }) {
   // Define tower colors
-  const towerColors = ['#6366F1', '#8B5CF6', '#EC4899'];
+  const towerColors = ['#6366F1', '#8B5CF6', '#EC4899', '#F472B6'];
+  
+  // Define labels based on tower count
+  const towerLabels = towerCount === 3 ? ['A', 'B', 'C'] : ['A', 'B', 'C', 'D'];
   
   return (
     <div className="w-full max-w-3xl bg-gray-800 rounded-xl p-6 mb-4">
@@ -14,14 +17,14 @@ function HanoiTower({ towers, onTowerClick, selectedTower, disks, gameComplete }
         {towers.map((tower, towerIndex) => (
           <div 
             key={towerIndex} 
-            className={`relative flex flex-col items-center h-64 w-1/3 cursor-pointer
+            className={`relative flex flex-col items-center h-64 w-${towerCount === 3 ? '1/3' : '1/4'} cursor-pointer
                       ${selectedTower === towerIndex ? 'opacity-80' : 'opacity-100'}`}
             onClick={() => onTowerClick(towerIndex)}
           >
             {/* Tower rod */}
             <div 
               className={`absolute bottom-0 w-3 h-60 rounded-t-full transition-all duration-300
-                        ${towerIndex === 2 && gameComplete 
+                        ${towerIndex === towerCount - 1 && gameComplete 
                           ? 'bg-gradient-to-t from-yellow-500 to-yellow-300 animate-pulse' 
                           : 'bg-gray-600'}`}
             ></div>
@@ -32,8 +35,10 @@ function HanoiTower({ towers, onTowerClick, selectedTower, disks, gameComplete }
             {/* Disks - stacked from bottom to top */}
             <div className="absolute bottom-2 flex flex-col-reverse w-full items-center">
               {tower.map((diskSize, diskIndex) => {
-                // Calculate width based on disk size (larger number = wider disk)
-                const diskWidth = 50 + (diskSize * 10);
+                // Calculate width based on disk size and tower count
+                // Make disks slightly narrower when there are 4 towers
+                const baseWidth = towerCount === 3 ? 50 : 40;
+                const diskWidth = baseWidth + (diskSize * 8);
                 const hue = (diskSize * 25) % 360; // Vary hue based on disk size
                 
                 return (
@@ -46,7 +51,7 @@ function HanoiTower({ towers, onTowerClick, selectedTower, disks, gameComplete }
                       backgroundColor: diskIndex === tower.length - 1 && tower === towers[selectedTower] 
                         ? '#60A5FA' // highlight top disk if tower is selected
                         : `hsl(${hue}, 80%, 60%)`,
-                      transform: tower === towers[2] && gameComplete
+                      transform: tower === towers[towerCount - 1] && gameComplete
                         ? 'scale(1.05)' // subtle pulse effect for completed tower
                         : 'scale(1)',
                       transition: 'all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55)' // Bouncy animation
@@ -62,7 +67,7 @@ function HanoiTower({ towers, onTowerClick, selectedTower, disks, gameComplete }
             
             {/* Tower label */}
             <div className="absolute bottom-[-25px] text-white font-medium">
-              {['A', 'B', 'C'][towerIndex]}
+              {towerLabels[towerIndex]}
             </div>
           </div>
         ))}

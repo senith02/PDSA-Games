@@ -1,5 +1,7 @@
 const { solveRecursively } = require('../algorithms/towerOfHanoi/recursiveSolution');
 const { solveIteratively } = require('../algorithms/towerOfHanoi/iterativeSolution');
+const { solveFourTowerRecursively } = require('../algorithms/towerOfHanoi/fourTowerRecursiveSolution');
+const { solveFourTowerIteratively } = require('../algorithms/towerOfHanoi/fourTowerIterativeSolution');
 const HanoiResult = require('../models/HanoiResult');
 
 /**
@@ -14,7 +16,7 @@ const towerOfHanoiController = {
   getSolution: (req, res) => {
     try {
       // Get parameters from request
-      const { algorithm, disks } = req.query;
+      const { algorithm, disks, towers = "3" } = req.query;
       
       // Validate parameters
       if (!algorithm || !disks) {
@@ -24,6 +26,7 @@ const towerOfHanoiController = {
       }
       
       const diskCount = parseInt(disks);
+      const towerCount = parseInt(towers);
       
       // Validate disk count
       if (isNaN(diskCount) || diskCount < 3 || diskCount > 10) {
@@ -32,54 +35,50 @@ const towerOfHanoiController = {
         });
       }
       
-      let result;
-      
-      // Call appropriate algorithm
-      if (algorithm === 'recursive') {
-        result = solveRecursively(diskCount);
-        console.log(`Recursive solution generated with ${result.moves.length} moves`);
-      } else if (algorithm === 'iterative') {
-        result = solveIteratively(diskCount);
-        console.log(`Iterative solution generated with ${result.moves.length} moves`);
-      } else {
-        return res.status(400).json({ 
-          error: 'Invalid algorithm. Use "recursive" or "iterative"' 
+      // Validate tower count
+      if (isNaN(towerCount) || ![3, 4].includes(towerCount)) {
+        return res.status(400).json({
+          error: 'Invalid tower count: must be either 3 or 4'
         });
       }
       
-      // Validate the result format
-      if (!result || !Array.isArray(result.moves) || result.moves.length === 0) {
-        throw new Error(`Algorithm returned invalid result format: ${JSON.stringify(result)}`);
+      let result;
+      
+      // Call appropriate algorithm based on tower count and algorithm choice
+      if (towerCount === 3) {
+        if (algorithm === 'recursive') {
+          result = solveRecursively(diskCount);
+        } else if (algorithm === 'iterative') {
+          result = solveIteratively(diskCount);
+        } else {
+          return res.status(400).json({ 
+            error: 'Invalid algorithm. Use "recursive" or "iterative"' 
+          });
+        }
+      } else { // towerCount === 4
+        if (algorithm === 'recursive') {
+          result = solveFourTowerRecursively(diskCount);
+        } else if (algorithm === 'iterative') {
+          result = solveFourTowerIteratively(diskCount);
+        } else {
+          return res.status(400).json({ 
+            error: 'Invalid algorithm. Use "recursive" or "iterative"' 
+          });
+        }
       }
       
-      // Log a sample of the moves for debugging
-      console.log("Sample moves:", result.moves.slice(0, 5));
-
-      // Ensure every move has the correct format [from, to]
-      const validatedMoves = result.moves.map((move, index) => {
-        if (!Array.isArray(move) || move.length !== 2 || 
-            typeof move[0] !== 'number' || typeof move[1] !== 'number' ||
-            move[0] < 0 || move[0] > 2 || move[1] < 0 || move[1] > 2) {
-          console.error(`Invalid move format at index ${index}: ${JSON.stringify(move)}`);
-          throw new Error(`Invalid move format in algorithm result at index ${index}`);
-        }
-        return move;
-      });
-      
-      const response = {
+      return res.json({
         algorithm,
         disks: diskCount,
-        moves: validatedMoves,
+        towerCount,
+        moves: result.moves,
         executionTime: result.executionTime,
         steps: result.steps
-      };
-
-      console.log(`Sending Tower of Hanoi solution with ${validatedMoves.length} moves`);
-      return res.json(response);
+      });
       
     } catch (error) {
       console.error('Error in Tower of Hanoi controller:', error);
-      res.status(500).json({ error: `Server error: ${error.message}` });
+      res.status(500).json({ error: 'Server error processing Tower of Hanoi' });
     }
   },
   
@@ -90,7 +89,7 @@ const towerOfHanoiController = {
    */
   saveResult: async (req, res) => {
     try {
-      const { playerName, disks, moves, optimalMoves, timeTaken, algorithm } = req.body;
+      const { playerName, disks, moves, optimalMoves, timeTaken, algorithm, towerCount = 3 } = req.body;
       
       // Validate required fields
       if (!playerName || !disks || moves === undefined) {
@@ -106,7 +105,8 @@ const towerOfHanoiController = {
         moves,
         optimalMoves,
         timeTaken,
-        algorithm
+        algorithm,
+        towerCount
       });
       
       // Save to database

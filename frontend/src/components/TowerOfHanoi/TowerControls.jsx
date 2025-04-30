@@ -1,10 +1,17 @@
 import React from 'react';
 
-function TowerControls({ disks, setDisks, resetGame, isAutoSolving, navigate }) {
+function TowerControls({ disks, setDisks, resetGame, isAutoSolving, navigate, towerCount, setTowerCount }) {
   const handleDiskChange = (newCount) => {
     // Ensure disk count is between 3 and 8
     if (newCount >= 3 && newCount <= 8) {
       setDisks(newCount);
+    }
+  };
+  
+  const handleTowerChange = (newCount) => {
+    // Only allow 3 or 4 towers
+    if (newCount === 3 || newCount === 4) {
+      setTowerCount(newCount);
     }
   };
   
@@ -27,6 +34,27 @@ function TowerControls({ disks, setDisks, resetGame, isAutoSolving, navigate }) 
           className="px-3 py-1 bg-gray-700 text-white rounded-r-md hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           +
+        </button>
+      </div>
+      
+      <div className="flex items-center bg-gray-800 rounded-md p-1">
+        <button
+          onClick={() => handleTowerChange(3)}
+          disabled={towerCount === 3 || isAutoSolving}
+          className={`px-3 py-1 text-white rounded-l-md ${towerCount === 3 
+            ? 'bg-blue-600' 
+            : 'bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed'}`}
+        >
+          3 Towers
+        </button>
+        <button
+          onClick={() => handleTowerChange(4)}
+          disabled={towerCount === 4 || isAutoSolving}
+          className={`px-3 py-1 text-white rounded-r-md ${towerCount === 4 
+            ? 'bg-blue-600' 
+            : 'bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed'}`}
+        >
+          4 Towers
         </button>
       </div>
       

@@ -1,6 +1,6 @@
 import React from 'react';
 
-function HanoiPlayerInfo({ playerName, setPlayerName, moves, minMoves, gameComplete }) {
+function HanoiPlayerInfo({ playerName, setPlayerName, moves, minMoves, gameComplete, towerCount = 3 }) {
   return (
     <div className="bg-gray-800/80 p-3 rounded-lg shadow-md mb-4">
       <h3 className="text-md font-medium text-white mb-2">Player Information</h3>
@@ -21,6 +21,11 @@ function HanoiPlayerInfo({ playerName, setPlayerName, moves, minMoves, gameCompl
       <div className="mt-2 text-sm">
         <div className="text-gray-400">
           Moves: <span className="text-white">{moves}</span> / Optimal: <span className="text-white">{minMoves}</span>
+          <div className="text-xs text-gray-500 mt-1">
+            {towerCount === 3 
+              ? "Classic 3-tower mode" 
+              : "Advanced 4-tower mode"}
+          </div>
         </div>
         <div className="mt-1">
           {gameComplete && (
