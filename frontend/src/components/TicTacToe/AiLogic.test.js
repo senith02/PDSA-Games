@@ -423,6 +423,31 @@ describe('getHeuristicMove Function', () => {
     });
 });
 
+describe('getMinimaxMove Function', () => {
+    test('Logs fallback message', () => {
+        const board = Array(25).fill(null);
+        const consoleSpy = jest.spyOn(console, 'log');
+        
+        // Call function and verify it logs the fallback message
+        const minimaxMove = getMinimaxMove(board); // Changed variable name from 'move' to 'minimaxMove'
+        
+        expect(consoleSpy).toHaveBeenCalledWith("Minimax AI selected - using heuristic fallback");
+        
+        // Restore console.log
+        consoleSpy.mockRestore();
+    });
+
+    test('Returns a valid move', () => {
+        const board = Array(25).fill(null);
+        board[0] = '✕';
+        board[6] = '⭘';
+        
+        const move = getMinimaxMove(board);
+        expect(move >= 0 && move < 25).toBe(true);
+        expect(board[move]).toBe(null); // Should be an empty cell
+    });
+});
+
 describe('getComputerMove Function', () => {
     test('Returns move and timing for heuristic algorithm', () => {
         const board = Array(25).fill(null);
